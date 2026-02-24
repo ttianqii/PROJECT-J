@@ -67,6 +67,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const resetOrbVars = () => {
     smoothRmsRef.current = 0
     orbRef.current?.style.removeProperty('--orb-shadow')
+    orbRef.current?.style.removeProperty('--orb-scale')
   }
 
   // Web Speech API instance (interim-only, runs in parallel with MediaRecorder)
@@ -184,18 +185,20 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         for (const v of dataArray) sumSq += (v - 128) ** 2
         const rms = Math.sqrt(sumSq / dataArray.length)
 
-        // ── Voice-reactive orb: smooth RMS → glow only (orb animation never changes) ──
-        // Exponential MA: damps spikes so glow is smooth, not flickery
+        // ── Voice-reactive orb: smooth RMS → scale + glow (zero re-renders) ──
+        // Exponential MA: raw spikes don’t hit the DOM; CSS transition does the easing
         smoothRmsRef.current = smoothRmsRef.current * 0.82 + rms * 0.18
         const s = smoothRmsRef.current
         if (orbRef.current) {
-          // Only write box-shadow (GPU-composited, no repaint, no flicker)
           const level  = Math.min(s / 48, 1)
-          const glow   = Math.round(44 + level * 90)
-          const alpha1 = Math.min(0.30 + level * 0.55, 0.85).toFixed(2)
-          const alpha2 = Math.min(0.10 + level * 0.22, 0.30).toFixed(2)
+          // Scale: 1.0 (silent) → 1.22 (loudest) — CSS transition(0.15s) smooths it
+          orbRef.current.style.setProperty('--orb-scale', (1 + level * 0.22).toFixed(3))
+          // Glow: GPU-composited box-shadow, no repaint, no flicker
+          const glow   = Math.round(52 + level * 95)
+          const alpha1 = Math.min(0.32 + level * 0.55, 0.87).toFixed(2)
+          const alpha2 = Math.min(0.12 + level * 0.24, 0.36).toFixed(2)
           orbRef.current.style.setProperty('--orb-shadow',
-            `0 0 ${glow}px rgba(234,88,12,${alpha1}), 0 0 ${glow * 2}px rgba(251,146,60,${alpha2})`)
+            `0 0 ${glow}px rgba(230,80,0,${alpha1}), 0 0 ${glow * 2}px rgba(249,188,41,${alpha2})`)
         }
 
         if (rms > SILENCE_THRESHOLD) {
