@@ -71,14 +71,57 @@
 
 /* ── Voice pulse ripple ──────────────────────────────────────────────────── */
 @keyframes voice-ripple {
-  0%   { transform: scale(1);   opacity: 0.28; }
-  100% { transform: scale(2.1); opacity: 0; }
+  0%   { transform: scale(1);   opacity: 0.22; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 
 /* ── Ring breathe ────────────────────────────────────────────────────────── */
 @keyframes ring-breathe {
   0%, 100% { transform: scale(1);    opacity: 0.6; }
   50%       { transform: scale(1.07); opacity: 1; }
+}
+
+/* ── Orb float / breathe ─────────────────────────────────────────────────── */
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1);    box-shadow: var(--orb-glow-lo); }
+  50%      { transform: scale(1.07); box-shadow: var(--orb-glow-hi); }
+}
+
+/* ── Siri-style blob morphing ─────────────────────────────────────────────── */
+@keyframes siri-blob-1 {
+  0%,100% { border-radius: 60% 40% 55% 45% / 55% 45% 60% 40%;
+            transform: translate(-10%,-8%) scale(1.12); }
+  33%     { border-radius: 44% 56% 66% 34% / 44% 62% 38% 56%;
+            transform: translate(7%,-15%) scale(1.2); }
+  66%     { border-radius: 56% 44% 38% 62% / 64% 34% 66% 44%;
+            transform: translate(-5%,10%) scale(1.06); }
+}
+@keyframes siri-blob-2 {
+  0%,100% { border-radius: 42% 58% 48% 52% / 60% 40% 56% 44%;
+            transform: translate(14%,8%) scale(1.08); }
+  33%     { border-radius: 66% 34% 56% 44% / 50% 60% 44% 56%;
+            transform: translate(-12%,13%) scale(1.16); }
+  66%     { border-radius: 46% 54% 34% 66% / 44% 56% 64% 36%;
+            transform: translate(12%,-12%) scale(1.22); }
+}
+@keyframes siri-blob-3 {
+  0%,100% { border-radius: 54% 46% 64% 36% / 46% 62% 40% 54%;
+            transform: translate(6%,14%) scale(0.86); }
+  33%     { border-radius: 36% 64% 44% 56% / 55% 36% 64% 44%;
+            transform: translate(-14%,-6%) scale(0.97); }
+  66%     { border-radius: 64% 36% 56% 44% / 36% 68% 32% 64%;
+            transform: translate(5%,-15%) scale(0.92); }
+}
+
+/* ── Siri voice pulse ring ────────────────────────────────────────────────── */
+@keyframes siri-pulse {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  80%  { opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
 }
 
 /* ── Word appear (streaming text) ───────────────────────────────────────── */

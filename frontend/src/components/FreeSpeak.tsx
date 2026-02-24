@@ -4,6 +4,7 @@ import { transcribeAudio, assessPronunciation, lookupWord } from '../services/ap
 import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse } from '../types'
 import { WordCard } from './WordCard'
 import { AccuracyFeedback } from './AccuracyFeedback'
+import SiriOrb from './SiriOrb'
 
 interface Props {
   mode: LearnerMode
@@ -58,6 +59,15 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const silenceRafRef = useRef<number | null>(null)
   const [hasSound, setHasSound] = useState(false)
 
+  // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
+  const orbRef = useRef<HTMLDivElement>(null)
+
+  const resetOrbVars = () => {
+    orbRef.current?.style.setProperty('--input-level', '0')
+    orbRef.current?.style.setProperty('--anim-dur', '22s')
+    orbRef.current?.style.removeProperty('--orb-shadow')
+  }
+
   // Web Speech API instance (interim-only, runs in parallel with MediaRecorder)
   const srRef = useRef<SpeechRecognition | null>(null)
 
@@ -101,6 +111,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         audioCtxRef.current?.close()
         audioCtxRef.current = null
         setHasSound(false)
+        resetOrbVars()
         try { srRef.current?.stop() } catch { /* ignore */ }
         stream.getTracks().forEach((t) => t.stop())
         const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' })
@@ -172,6 +183,21 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         for (const v of dataArray) sumSq += (v - 128) ** 2
         const rms = Math.sqrt(sumSq / dataArray.length)
 
+        // ── Drive SiriOrb CSS vars directly (zero React re-renders) ──────
+        if (orbRef.current) {
+          const level = Math.min(rms / 48, 1)                        // 0-1 normalised
+          const dur   = rms > SILENCE_THRESHOLD
+            ? Math.max(3.5, 22 - level * 19).toFixed(1)              // 22s idle → 3.5s loud
+            : '14'                                                    // slow drift while waiting
+          const glow  = Math.round(45 + level * 70)
+          const alpha1 = (0.20 + level * 0.60).toFixed(2)
+          const alpha2 = (0.08 + level * 0.22).toFixed(2)
+          orbRef.current.style.setProperty('--input-level', level.toFixed(3))
+          orbRef.current.style.setProperty('--anim-dur', `${dur}s`)
+          orbRef.current.style.setProperty('--orb-shadow',
+            `0 0 ${glow}px rgba(220,38,38,${alpha1}), 0 0 ${glow * 2}px rgba(220,38,38,${alpha2})`)
+        }
+
         if (rms > SILENCE_THRESHOLD) {
           hasSpoken = true
           lastVoiceAt = Date.now()
@@ -209,6 +235,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     audioCtxRef.current?.close()
     audioCtxRef.current = null
     setHasSound(false)
+    resetOrbVars()
     try { srRef.current?.stop() } catch { /* ignore */ }
     mediaRef.current?.stop()
     mediaRef.current = null
@@ -290,88 +317,87 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   return (
     <div className="flex flex-col items-center gap-5 py-8 px-4 max-w-sm mx-auto">
 
-      {/* ── Mic hero ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-3">
+      {/* ── Siri Orb hero ──────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center gap-5">
 
-        {/* Outer breathing ring (recording only) */}
-        <div className="relative flex items-center justify-center">
+        {/* Ripple ring container — rings appear around the orb on voice */}
+        <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
 
-          {/* Voice pulse ripples — only when sound detected */}
-          {recording && hasSound && (<>
-            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out infinite' }} />
-            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out 0.45s infinite' }} />
-            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out 0.9s infinite' }} />
-          </>)}
+          {/* Idle float wrapper */}
+          <div style={{ animation: 'orb-float 5s ease-in-out infinite' }}>
 
-          {/* Slow breathing ring when recording but silent */}
-          {recording && !hasSound && (
-            <span
-              className={`absolute rounded-full border transition-all duration-700
-                ${isJapanese ? 'border-red-500/25' : 'border-amber-500/25'}`}
-              style={{
-                width: 'calc(100% + 28px)',
-                height: 'calc(100% + 28px)',
-                animation: 'ring-breathe 2s ease-in-out infinite',
-              }}
-            />
-          )}
-
-          {/* Main circle */}
-          <button
-            onClick={recording ? stopDetect : !loading ? startDetect : undefined}
-            disabled={loading || practiceRecording}
-            aria-label={recording ? 'Stop' : 'Start recording'}
-            className={`relative w-28 h-28 rounded-full border flex items-center justify-center
-              transition-all duration-500 focus:outline-none
-              ${loading
-                ? isJapanese
-                  ? 'border-red-500/35 bg-red-500/5 cursor-default'
-                  : 'border-amber-500/35 bg-amber-500/5 cursor-default'
-                : recording
-                  ? isJapanese
-                    ? 'border-red-500/55 bg-red-500/8 active:scale-95 cursor-pointer'
-                    : 'border-amber-500/55 bg-amber-500/8 active:scale-95 cursor-pointer'
-                  : isComplete
-                    ? isJapanese
-                      ? 'border-red-500/45 bg-red-500/6 hover:border-red-500/70 active:scale-95 cursor-pointer'
-                      : 'border-amber-500/45 bg-amber-500/6 hover:border-amber-500/70 active:scale-95 cursor-pointer'
-                    : 'border-white/12 bg-white/2 hover:border-white/25 active:scale-95 cursor-pointer'
-              }`}
-          >
-            {loading ? (
-              /* Spinner arc */
-              <div className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin
-                ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
-            ) : (
-              /* Mic icon */
-              <Mic className={`w-8 h-8 transition-colors duration-300
-                ${recording
-                  ? isJapanese ? 'text-red-400' : 'text-amber-400'
-                  : isComplete
-                    ? isJapanese ? 'text-red-400/80' : 'text-amber-400/80'
-                    : 'text-white/30'
-                }`}
-              />
+            {/* Pulse rings — CSS-only, driven by hasSound React state */}
+            {recording && hasSound && (
+              [0, 0.6, 1.2].map((delay) => (
+                <span key={delay} className="absolute rounded-full pointer-events-none" style={{
+                  width: 192, height: 192,
+                  top: '50%', left: '50%',
+                  translate: '-50% -50%',
+                  border: '1.5px solid rgba(220,38,38,0.55)',
+                  animation: `siri-pulse 2.2s cubic-bezier(0.4,0,0.6,1) ${delay}s infinite`,
+                }} />
+              ))
             )}
-          </button>
+
+            {/* Tap target wraps the orb so the button click area is the full circle */}
+            <button
+              onClick={recording ? stopDetect : !loading ? startDetect : undefined}
+              disabled={loading || practiceRecording}
+              aria-label={recording ? 'Stop recording' : 'Start recording'}
+              style={{
+                position: 'relative', width: 192, height: 192,
+                borderRadius: '50%', padding: 0, border: 'none',
+                background: 'none', outline: 'none',
+                cursor: loading ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {/* SiriOrb — ref receives CSS var updates from audio rAF loop */}
+              <SiriOrb ref={orbRef} size={192} />
+
+              {/* Mic / spinner — floated above the orb */}
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {loading ? (
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.4)',
+                    borderTopColor: 'transparent',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                ) : (
+                  <Mic style={{
+                    width: 34, height: 34,
+                    color: recording ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.28)',
+                    filter: recording
+                      ? 'drop-shadow(0 0 14px rgba(255,255,255,0.7))'
+                      : 'none',
+                    transform: recording && hasSound
+                      ? 'scale(1.25)' : recording ? 'scale(1.07)' : 'scale(1)',
+                    transition: 'all 0.25s ease',
+                  }} />
+                )}
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* State label */}
-        <p className={`text-[10px] tracking-[0.2em] uppercase font-semibold transition-all duration-300
-          ${recording
-            ? isJapanese ? 'text-red-400' : 'text-amber-400'
+        <p style={{
+          fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
+          fontWeight: 600, transition: 'color 0.4s ease',
+          color: recording
+            ? 'rgba(248,113,113,0.9)'
             : loading
-              ? isJapanese ? 'text-red-400/60' : 'text-amber-400/60'
+              ? 'rgba(248,113,113,0.45)'
               : isComplete
-                ? isJapanese ? 'text-red-400/70' : 'text-amber-400/70'
-                : 'text-white/20'
-          }`}
-        >
+                ? 'rgba(248,113,113,0.6)'
+                : 'rgba(255,255,255,0.2)',
+        }}>
           {recording
-            ? (isJapanese ? 'กำลังฟัง' : 'Listening')
+            ? (isJapanese ? 'กำลังฟัง...' : 'Listening...')
             : loading
               ? (isJapanese ? 'วิเคราะห์...' : 'Analyzing...')
               : isComplete
@@ -379,22 +405,17 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 : (isJapanese ? 'แตะเพื่อพูด' : 'Tap to speak')}
         </p>
 
-        {/* Waveform bars — recording only */}
+        {/* Waveform bars — crimson when voice, dim when silent */}
         {recording && (
-          <div className="flex items-end gap-0.75" style={{ height: '28px' }}>
+          <div className="flex items-end gap-0.75" style={{ height: 26 }}>
             {Array.from({ length: 9 }, (_, i) => (
-              <div
-                key={i}
-                className={`bar ${hasSound
-                  ? isJapanese ? 'bg-red-400' : 'bg-amber-400'
-                  : 'bg-white/15'}`}
-                style={{
-                  '--i': i,
-                  height: `${[40, 65, 85, 100, 90, 100, 85, 65, 40][i]}%`,
-                  animationPlayState: hasSound ? 'running' : 'paused',
-                  opacity: hasSound ? 0.75 : 0.2,
-                } as React.CSSProperties}
-              />
+              <div key={i} className="bar" style={{
+                '--i': i,
+                height: `${[38,62,82,100,88,100,82,62,38][i]}%`,
+                background: hasSound ? '#f87171' : 'rgba(255,255,255,0.12)',
+                animationPlayState: hasSound ? 'running' : 'paused',
+                opacity: hasSound ? 0.85 : 0.2,
+              } as React.CSSProperties} />
             ))}
           </div>
         )}
