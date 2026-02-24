@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Mic, MicOff, RefreshCw } from 'lucide-react'
 import { transcribeAudio, assessPronunciation, lookupWord } from '../services/api'
 import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse } from '../types'
@@ -47,6 +47,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const [practiceError, setPracticeError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const [interimText, setInterimText] = useState('')   // live Web Speech API interim transcript
+
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const practiceMediaRef = useRef<MediaRecorder | null>(null)
@@ -56,14 +58,22 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const silenceRafRef = useRef<number | null>(null)
   const [hasSound, setHasSound] = useState(false)
 
-  const accentCls = isJapanese ? 'bg-red-500' : 'bg-amber-500'
+  // Web Speech API instance (interim-only, runs in parallel with MediaRecorder)
+  const srRef = useRef<SpeechRecognition | null>(null)
+
+  useEffect(() => {
+    const SRConstructor = (window as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
+      ?? (window as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    if (!SRConstructor) return
+    const sr = new SRConstructor()
+    sr.continuous = true
+    sr.interimResults = true
+    srRef.current = sr
+  }, [])
+
   const accentColor = isJapanese ? 'text-red-400' : 'text-amber-400'
   const accentBg = isJapanese ? 'bg-red-500/10' : 'bg-amber-500/10'
   const accentBorder = isJapanese ? 'border-red-500/30' : 'border-amber-500/30'
-
-  const hintText = isJapanese
-    ? 'ลองพูดคำภาษาญี่ปุ่น — AI จะจับเสียงและค้นหาความหมาย'
-    : 'タイ語で話してみてください — AIが音声を認識し意味を調べます'
 
   // ── Detect recording ──────────────────────────────────────────────────────
   const startDetect = async () => {
@@ -73,6 +83,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setAssessResult(null)
     setPracticeError(null)
     setError(null)
+    setInterimText('')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -90,6 +101,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         audioCtxRef.current?.close()
         audioCtxRef.current = null
         setHasSound(false)
+        try { srRef.current?.stop() } catch { /* ignore */ }
         stream.getTracks().forEach((t) => t.stop())
         const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' })
         setLoading(true)
@@ -117,6 +129,24 @@ export default function FreeSpeak({ mode, dataset }: Props) {
       mr.start()
       mediaRef.current = mr
       setRecording(true)
+
+      // ── Web Speech API — live interim transcript only ──────────────────────
+      if (srRef.current) {
+        const sr = srRef.current
+        sr.lang = lang === 'ja' ? 'ja-JP' : 'th-TH'
+        sr.onresult = (event: Event & { resultIndex: number; results: SpeechRecognitionResultList }) => {
+          let interim = ''
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const text = event.results[i][0].transcript
+            // Accumulate final + interim into one live string
+            interim += text
+          }
+          setInterimText(interim)
+        }
+        sr.onerror = () => { /* ignore SR errors, Whisper is the source of truth */ }
+        sr.onend = () => { /* no-op */ }
+        try { sr.start() } catch { /* already started */ }
+      }
 
       // ── Silence detection via Web Audio API ──────────────────────────────
       const SILENCE_THRESHOLD = 10   // RMS below this = silent
@@ -179,6 +209,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     audioCtxRef.current?.close()
     audioCtxRef.current = null
     setHasSound(false)
+    try { srRef.current?.stop() } catch { /* ignore */ }
     mediaRef.current?.stop()
     mediaRef.current = null
     setRecording(false)
@@ -229,6 +260,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   }
 
   const resetAll = () => {
+    try { srRef.current?.stop() } catch { /* ignore */ }
+    setInterimText('')
     setTranscribeResult(null)
     setMatchedEntry(null)
     setAssessResult(null)
@@ -245,227 +278,201 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setError(null)
   }
 
+  // Derive "complete" = transcription done, not loading, result is good
+  const isComplete = !loading && !recording && transcribeResult?.ok && !!transcribeResult.transcribed
+  // GPT lookup phase: Whisper done, still asking GPT-4o
+  const isLookingUp = loading && !!transcribeResult?.transcribed
+  // What to show in the YOU SAID card
+  const displayText = (transcribeResult?.ok && transcribeResult.transcribed)
+    ? transcribeResult.transcribed  // Whisper final result
+    : interimText                   // live Web Speech API interim
+
   return (
-    <div className="flex flex-col gap-5 py-4 px-4 max-w-md mx-auto">
-      {/* Title */}
-      <div className="text-center">
-        <h2 className={`text-lg font-bold ${accentColor}`}>
-          {isJapanese ? 'จับเสียงอิสระ' : 'フリー音声認識'}
-        </h2>
-        <p className="text-sm text-gray-500 mt-1 leading-snug">{hintText}</p>
-      </div>
+    <div className="flex flex-col items-center gap-5 py-8 px-4 max-w-sm mx-auto">
 
-      {/* ── Mic control card ─────────────────────────────────────────────── */}
-      <div className={`relative overflow-hidden rounded-3xl border transition-all duration-300
-        ${recording
-          ? `${accentBg} ${accentBorder} shadow-lg ${isJapanese ? 'shadow-red-500/10' : 'shadow-amber-500/10'}`
-          : loading
-            ? 'bg-white/[0.03] border-white/10'
-            : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.05]'
-        }`}
-      >
-        {loading ? (
-          /* ── Processing ── */
-          <div className="flex flex-col items-center gap-4 py-10 px-6">
-            {/* Ripple rings */}
-            <div className="relative flex items-center justify-center w-20 h-20">
-              <span className={`absolute inset-0 rounded-full opacity-20 animate-ping
-                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
-              <span className={`absolute inset-2 rounded-full opacity-15 animate-ping [animation-delay:200ms]
-                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
-              <div className={`relative w-14 h-14 rounded-full flex items-center justify-center
-                ${isJapanese ? 'bg-red-500/20' : 'bg-amber-500/20'}`}>
-                <div className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin
-                  ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
-              </div>
-            </div>
-            <div className="text-center">
-              <p className={`text-sm font-semibold ${accentColor}`}>
-                {isJapanese ? 'กำลังประมวลผล...' : '処理中...'}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {isJapanese ? 'Whisper แปลงเสียง → AI ค้นหาความหมาย' : 'Whisperで認識 → AIで意味を調査'}
-              </p>
-            </div>
-          </div>
+      {/* ── Mic hero ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center gap-3">
 
-        ) : recording ? (
-          /* ── Recording / voice search ── */
-          <div className="flex flex-col items-center gap-5 py-8 px-6">
-            {/* Mic icon with subtle breathing ring */}
-            <div className="relative flex items-center justify-center">
-              {hasSound && (
-                <span className={`absolute inset-0 rounded-full animate-ping opacity-20
-                  ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-                  style={{ animationDuration: '1.2s' }}
-                />
-              )}
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform duration-300
-                ${hasSound ? 'scale-105' : 'scale-100'}
-                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}>
-                <Mic className="w-7 h-7 text-white" />
-              </div>
-            </div>
+        {/* Outer breathing ring (recording only) */}
+        <div className="relative flex items-center justify-center">
+          {recording && (
+            <span
+              className={`absolute rounded-full border transition-all duration-700
+                ${isJapanese ? 'border-red-500/25' : 'border-amber-500/25'}`}
+              style={{
+                width: 'calc(100% + 28px)',
+                height: 'calc(100% + 28px)',
+                animation: 'ring-breathe 2s ease-in-out infinite',
+              }}
+            />
+          )}
 
-            {/* Equalizer waveform — 11 bars, growing from bottom, continuously animated */}
-            <div className="flex items-end gap-1 h-10">
-              {[
-                { h: 25, dur: 0.55 }, { h: 50, dur: 0.70 }, { h: 75, dur: 0.45 },
-                { h: 95, dur: 0.62 }, { h: 100, dur: 0.50 }, { h: 80, dur: 0.58 },
-                { h: 100, dur: 0.48 }, { h: 95, dur: 0.66 }, { h: 75, dur: 0.43 },
-                { h: 50, dur: 0.68 }, { h: 25, dur: 0.52 },
-              ].map(({ h, dur }, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: `${h}%`,
-                    transformOrigin: 'bottom',
-                    transform: hasSound ? undefined : 'scaleY(0.12)',
-                    animation: hasSound ? `audiobar ${dur}s ease-in-out ${(i * 0.07).toFixed(2)}s infinite` : 'none',
-                    transition: 'transform 0.4s ease, background-color 0.3s ease',
-                  }}
-                  className={`w-1 rounded-full ${
-                    hasSound
-                      ? isJapanese ? 'bg-red-400' : 'bg-amber-400'
-                      : 'bg-gray-700'
-                  }`}
-                />
-              ))}
-            </div>
+          {/* Main circle */}
+          <button
+            onClick={recording ? stopDetect : !loading ? startDetect : undefined}
+            disabled={loading || practiceRecording}
+            aria-label={recording ? 'Stop' : 'Start recording'}
+            className={`relative w-28 h-28 rounded-full border flex items-center justify-center
+              transition-all duration-500 focus:outline-none
+              ${loading
+                ? isJapanese
+                  ? 'border-red-500/35 bg-red-500/5 cursor-default'
+                  : 'border-amber-500/35 bg-amber-500/5 cursor-default'
+                : recording
+                  ? isJapanese
+                    ? 'border-red-500/55 bg-red-500/8 active:scale-95 cursor-pointer'
+                    : 'border-amber-500/55 bg-amber-500/8 active:scale-95 cursor-pointer'
+                  : isComplete
+                    ? isJapanese
+                      ? 'border-red-500/45 bg-red-500/6 hover:border-red-500/70 active:scale-95 cursor-pointer'
+                      : 'border-amber-500/45 bg-amber-500/6 hover:border-amber-500/70 active:scale-95 cursor-pointer'
+                    : 'border-white/12 bg-white/2 hover:border-white/25 active:scale-95 cursor-pointer'
+              }`}
+          >
+            {loading ? (
+              /* Spinner arc */
+              <div className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin
+                ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
+            ) : (
+              /* Mic icon */
+              <Mic className={`w-8 h-8 transition-colors duration-300
+                ${recording
+                  ? isJapanese ? 'text-red-400' : 'text-amber-400'
+                  : isComplete
+                    ? isJapanese ? 'text-red-400/80' : 'text-amber-400/80'
+                    : 'text-white/30'
+                }`}
+              />
+            )}
+          </button>
+        </div>
 
-            <p className={`text-xs font-medium tracking-wide transition-colors duration-300 ${
-              hasSound ? accentColor : 'text-gray-600'
-            }`}>
-              {hasSound
-                ? isJapanese ? 'รับเสียงอยู่...' : '音声を受信中...'
-                : isJapanese ? 'รอรับเสียง...' : '音声を待っています...'}
-            </p>
+        {/* State label */}
+        <p className={`text-[10px] tracking-[0.2em] uppercase font-semibold transition-all duration-300
+          ${recording
+            ? isJapanese ? 'text-red-400' : 'text-amber-400'
+            : loading
+              ? isJapanese ? 'text-red-400/60' : 'text-amber-400/60'
+              : isComplete
+                ? isJapanese ? 'text-red-400/70' : 'text-amber-400/70'
+                : 'text-white/20'
+          }`}
+        >
+          {recording
+            ? (isJapanese ? 'กำลังฟัง' : 'Listening')
+            : loading
+              ? (isJapanese ? 'วิเคราะห์...' : 'Analyzing...')
+              : isComplete
+                ? (isJapanese ? 'เสร็จสิ้น' : 'Complete')
+                : (isJapanese ? 'แตะเพื่อพูด' : 'Tap to speak')}
+        </p>
 
-            {/* Stop button */}
-            <button
-              onClick={stopDetect}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-full
-                bg-white/8 border border-white/15 hover:bg-white/15
-                text-gray-300 hover:text-white text-xs font-semibold
-                transition-all active:scale-95"
-            >
-              <MicOff size={14} />
-              {isJapanese ? 'หยุด' : '停止'}
-            </button>
-          </div>
-
-        ) : (
-          /* ── Idle ── */
-          <div className="flex flex-col items-center gap-4 py-10 px-6">
-            <button
-              onClick={startDetect}
-              disabled={practiceRecording}
-              className={[
-                'group relative w-20 h-20 rounded-full flex items-center justify-center shadow-2xl',
-                'transition-all duration-300 active:scale-90',
-                practiceRecording
-                  ? 'bg-gray-700 cursor-not-allowed'
-                  : isJapanese
-                    ? 'bg-red-500 hover:bg-red-400 shadow-red-500/30'
-                    : 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/30',
-              ].join(' ')}
-            >
-              {/* Glow ring on hover */}
-              <span className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30
-                transition-opacity duration-300 scale-125
-                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
-              <Mic className="w-9 h-9 text-white relative z-10" />
-            </button>
-
-            {/* Idle bars — thin rods suggesting a waveform at rest */}
-            <div className="flex items-end gap-1 h-6">
-              {[25, 50, 75, 95, 100, 80, 100, 95, 75, 50, 25].map((h, i) => (
-                <div
-                  key={i}
-                  style={{ height: `${h}%`, transformOrigin: 'bottom', transform: 'scaleY(0.12)' }}
-                  className="w-1 rounded-full bg-gray-700"
-                />
-              ))}
-            </div>
-
-            <p className="text-xs text-gray-500">
-              {transcribeResult
-                ? isJapanese ? 'แตะเพื่อพูดใหม่' : 'タップして再度話す'
-                : isJapanese ? 'แตะแล้วพูดภาษาญี่ปุ่น' : 'タップしてタイ語を話してください'}
-            </p>
+        {/* Waveform bars — recording only */}
+        {recording && (
+          <div className="flex items-end gap-0.75" style={{ height: '28px' }}>
+            {Array.from({ length: 9 }, (_, i) => (
+              <div
+                key={i}
+                className={`bar ${hasSound
+                  ? isJapanese ? 'bg-red-400' : 'bg-amber-400'
+                  : 'bg-white/15'}`}
+                style={{
+                  '--i': i,
+                  height: `${[40, 65, 85, 100, 90, 100, 85, 65, 40][i]}%`,
+                  animationPlayState: hasSound ? 'running' : 'paused',
+                  opacity: hasSound ? 0.75 : 0.2,
+                } as React.CSSProperties}
+              />
+            ))}
           </div>
         )}
       </div>
 
-      {/* ── Preset word chips ─────────────────────────────────────────────── */}
-      {!matchedEntry && (
-        <div>
-          <p className="text-xs text-gray-600 mb-2 px-1">
-            {isJapanese ? 'หรือเลือกคำจากคลัง' : 'または語彙から選ぶ'}
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {dataset.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => pickPreset(entry)}
-                className={`flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border
-                  transition-all active:scale-95
-                  ${accentBg} ${accentBorder} hover:brightness-125`}
-              >
-                <span className={`text-sm font-bold ${accentColor}`}>{entry.word}</span>
-                <span className="text-xs text-gray-500 mt-0.5">{entry.romanization}</span>
-              </button>
-            ))}
-          </div>
+      {/* ── Error ─────────────────────────────────────────────────────────── */}
+      {error && (
+        <div className="error-box w-full" style={{ animation: 'fadeUp 0.3s ease both' }}>
+          {error}
         </div>
       )}
 
-      {/* ── Transcription result banner ───────────────────────────────────── */}
-      {transcribeResult && transcribeResult.ok && transcribeResult.transcribed && !loading && (
-        <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
+      {/* ── YOU SAID card — live interim while recording, then Whisper final result ──── */}
+      {displayText ? (
+        <div className="section-card w-full" style={{ animation: 'fadeUp 0.25s ease both' }}>
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">
-                {isJapanese ? 'AI ได้ยินว่า' : 'AIが聞こえたこと'}
-              </p>
-              <p className={`text-2xl font-bold ${accentColor}`}>{transcribeResult.transcribed}</p>
-              {!matchedEntry && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {isJapanese
-                    ? 'ไม่พบในคลัง — ลองพูดใหม่หรือเลือกคำด้านล่าง'
-                    : '語彙リストに見つかりません — もう一度話すか、下から選んでください'}
+            <div className="flex-1 min-w-0">
+              <p className="ui-label mb-2">You said</p>
+              {/* Live interim: plain updating text (no stagger — it changes too fast) */}
+              {recording && (
+                <p className={`text-2xl font-bold leading-snug ${accentColor}`}>
+                  {interimText}
+                </p>
+              )}
+              {/* Whisper confirmed result: per-word blur-fade-in animation */}
+              {!recording && (transcribeResult?.ok && transcribeResult.transcribed) && (
+                <p className={`text-2xl font-bold leading-snug ${accentColor}`} key={transcribeResult.transcribed}>
+                  {transcribeResult.transcribed.split(/\s+/).map((word, i) => (
+                    <span key={i} className="word-appear" style={{ animationDelay: `${i * 0.07}s` }}>
+                      {word}{' '}
+                    </span>
+                  ))}
+                </p>
+              )}
+              {/* During Whisper loading: show last interim as muted placeholder */}
+              {loading && !transcribeResult && interimText && (
+                <p className={`text-2xl font-bold leading-snug ${accentColor} opacity-40`}>
+                  {interimText}
                 </p>
               )}
             </div>
-            <button
-              onClick={resetAll}
-              title={isJapanese ? 'ลองใหม่' : 'やり直す'}
-              className="text-gray-600 hover:text-gray-300 transition mt-1"
-            >
-              <RefreshCw size={16} />
-            </button>
+            {!loading && !recording && (
+              <button
+                onClick={resetAll}
+                title="Reset"
+                className="text-white/20 hover:text-white/50 transition-colors mt-1 shrink-0"
+              >
+                <RefreshCw size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── PRONUNCIATION GUIDE skeleton — while GPT lookup runs ──────────── */}
+      {isLookingUp && (
+        <div className="section-card w-full" style={{ animation: 'fadeUp 0.35s ease both' }}>
+          <p className="ui-label mb-3">
+            {isJapanese ? 'Pronunciation guide' : 'Pronunciation guide'}
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="thinking">
+              <span /><span /><span />
+            </div>
+            <span className="text-xs text-white/25 font-mono">
+              {isJapanese ? 'กำลังสร้างคำแนะนำ...' : 'Generating guide...'}
+            </span>
           </div>
         </div>
       )}
 
-      {/* ── Matched vocab card + practice ────────────────────────────────── */}
-      {matchedEntry && (
+      {/* ── WordCard + practice ────────────────────────────────────────────── */}
+      {matchedEntry && !loading && (
         <>
-          {/* Back to suggestions */}
           <button
             onClick={resetAll}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition -mb-2"
+            className="self-start flex items-center gap-1.5 text-[11px] text-white/20
+              hover:text-white/50 transition-colors -mb-1"
           >
-            <RefreshCw size={12} />
+            <RefreshCw size={11} />
             {isJapanese ? 'กลับ / พูดคำอื่น' : '戻る / 別の語を話す'}
           </button>
+
           <WordCard entry={matchedEntry} mode={mode} />
 
-          {/* Practice section */}
-          <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder} space-y-3`}>
-            <p className={`text-sm font-bold ${accentColor} flex items-center gap-2`}>
-              <Mic size={14} />
-              {isJapanese ? 'ฝึกออกเสียงคำนี้' : 'この単語を練習する'}
+          {/* Practice */}
+          <div className="section-card w-full space-y-3">
+            <p className={`section-label flex items-center gap-1.5`}>
+              <Mic size={11} />
+              {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
             </p>
 
             {assessResult ? (
@@ -475,51 +482,45 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 onReset={() => { setAssessResult(null); setPracticeError(null) }}
               />
             ) : practiceLoading ? (
-              /* Processing state */
-              <div className="flex flex-col items-center gap-2 py-3">
-                <div className={`w-10 h-10 rounded-full border-4 border-t-transparent animate-spin
-                  ${isJapanese ? 'border-red-500' : 'border-amber-500'}`}
-                />
-                <p className={`text-xs font-semibold ${accentColor}`}>
-                  {isJapanese ? 'กำลังวิเคราะห์คะแนน...' : 'スコアを分析中...'}
-                </p>
+              <div className="flex items-center gap-3 py-1">
+                <div className={`w-5 h-5 rounded-full border-2 border-t-transparent animate-spin shrink-0
+                  ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
+                <span className="text-xs text-white/30 font-mono">
+                  {isJapanese ? 'กำลังวิเคราะห์...' : 'Scoring...'}
+                </span>
               </div>
             ) : practiceRecording ? (
-              /* Recording state */
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative flex items-center justify-center">
-                  <span className={`absolute w-12 h-12 rounded-full opacity-30 animate-ping
-                    ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
-                  <div className={`relative w-10 h-10 rounded-full flex items-center justify-center
-                    ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}>
-                    <Mic size={18} className="text-white" />
-                  </div>
-                </div>
-                <p className={`text-xs font-semibold ${accentColor}`}>
-                  {isJapanese ? 'กำลังฟัง...' : '聴いています...'}
+              <div className="flex flex-col items-center gap-3 py-1">
+                <p className={`text-[10px] tracking-[0.18em] uppercase ${accentColor}`}>
+                  {isJapanese ? 'กำลังฟัง...' : 'Listening...'}
                 </p>
                 <button
                   onClick={stopPractice}
-                  className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 border border-white/20
-                    hover:bg-white/20 text-white text-xs font-semibold transition-all active:scale-95"
+                  className="flex items-center gap-1.5 text-xs text-white/35 hover:text-white/60
+                    transition border border-white/10 hover:border-white/20
+                    px-4 py-1.5 rounded-full"
                 >
-                  <MicOff size={14} />
-                  {isJapanese ? 'หยุดและให้คะแนน' : '停止してスコア計算'}
+                  <MicOff size={11} />
+                  {isJapanese ? 'หยุดและให้คะแนน' : 'Stop & score'}
                 </button>
               </div>
             ) : (
-              /* Idle state */
               <>
                 <button
                   onClick={startPractice}
-                  className={`w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2
-                    transition-all active:scale-95 ${accentCls} hover:brightness-110`}
+                  className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold
+                    tracking-[0.12em] uppercase flex items-center justify-center gap-2
+                    transition-all active:scale-[0.98]
+                    ${isJapanese
+                      ? 'bg-red-500/70 hover:bg-red-500/90'
+                      : 'bg-amber-500/70 hover:bg-amber-500/90'
+                    }`}
                 >
-                  <Mic size={18} />
-                  {isJapanese ? 'กดแล้วพูดเพื่อรับคะแนน' : '押して話すとスコアが出ます'}
+                  <Mic size={13} />
+                  {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
                 </button>
                 {practiceError && (
-                  <p className="text-red-400 text-xs mt-1">{practiceError}</p>
+                  <p className="text-xs text-red-400/80">{practiceError}</p>
                 )}
               </>
             )}
@@ -527,10 +528,26 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         </>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
-          {error}
+      {/* ── Preset chips — only when idle with no result ───────────────────── */}
+      {!matchedEntry && !loading && !transcribeResult && (
+        <div className="w-full" style={{ animation: 'fadeUp 0.4s ease both' }}>
+          <p className="ui-label mb-3">
+            {isJapanese ? 'หรือเลือกคำจากคลัง' : 'または語彙から選ぶ'}
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {dataset.map((entry) => (
+              <button
+                key={entry.id}
+                onClick={() => pickPreset(entry)}
+                className={`shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border
+                  transition-all active:scale-95 hover:brightness-125
+                  ${accentBg} ${accentBorder}`}
+              >
+                <span className={`text-sm font-bold ${accentColor}`}>{entry.word}</span>
+                <span className="text-xs text-white/30 mt-0.5">{entry.romanization}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
