@@ -318,81 +318,68 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     : interimText                   // live Web Speech API interim
 
   return (
-    <div className="flex flex-col items-center gap-5 py-8 px-4 max-w-sm mx-auto">
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: 20, paddingTop: 36, paddingBottom: 36, paddingLeft: 20, paddingRight: 20,
+      maxWidth: 400, margin: '0 auto',
+    }}>
 
-      {/* ── Siri Orb hero ──────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-5">
+      {/* ── Orb hero ─────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
 
-        {/* Ripple ring container — rings appear around the orb on voice */}
+        {/* Ring container */}
         <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
-
-          {/* Idle float wrapper — position:relative so halo arcs anchor to it */}
           <div style={{ animation: 'orb-float 5s ease-in-out infinite', position: 'relative' }}>
 
-            {/* ── Loading scan-arc halo — orbits just outside the orb, floats with it ── */}
+            {/* Loading scan-arc halo */}
             {loading && (
               <>
-                {/* Primary comet sweep — fast orange-golden tail */}
                 <div style={{
-                  position: 'absolute',
-                  top: '50%', left: '50%',
-                  width: 218, height: 218,
-                  marginTop: -109, marginLeft: -109,
+                  position: 'absolute', top: '50%', left: '50%',
+                  width: 218, height: 218, marginTop: -109, marginLeft: -109,
                   borderRadius: '50%',
                   background: 'conic-gradient(from 0deg, transparent 48%, rgba(249,115,22,0.12) 65%, rgba(251,146,60,0.55) 84%, rgba(255,200,80,0.95) 97%, rgba(255,220,120,1) 100%)',
                   WebkitMask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
                   mask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
                   boxShadow: '0 0 28px 6px rgba(251,146,60,0.30)',
-                  animation: 'scan-arc-spin 1.55s linear infinite',
-                  pointerEvents: 'none',
+                  animation: 'scan-arc-spin 1.55s linear infinite', pointerEvents: 'none',
                 }} />
-
-                {/* Counter sweep — slow faint ghost arc opposite direction */}
                 <div style={{
-                  position: 'absolute',
-                  top: '50%', left: '50%',
-                  width: 232, height: 232,
-                  marginTop: -116, marginLeft: -116,
+                  position: 'absolute', top: '50%', left: '50%',
+                  width: 232, height: 232, marginTop: -116, marginLeft: -116,
                   borderRadius: '50%',
                   background: 'conic-gradient(from 180deg, transparent 60%, rgba(249,115,22,0.06) 78%, rgba(251,146,60,0.20) 95%, rgba(251,146,60,0.28) 100%)',
                   WebkitMask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
                   mask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
-                  animation: 'scan-arc-spin 3.8s linear infinite reverse',
-                  pointerEvents: 'none',
+                  animation: 'scan-arc-spin 3.8s linear infinite reverse', pointerEvents: 'none',
                 }} />
               </>
             )}
 
-            {/* Pulse rings — CSS-only, driven by hasSound React state */}
+            {/* Voice pulse rings */}
             {recording && hasSound && (
               [0, 0.6, 1.2].map((delay) => (
                 <span key={delay} className="absolute rounded-full pointer-events-none" style={{
-                  width: 192, height: 192,
-                  top: '50%', left: '50%',
-                  translate: '-50% -50%',
+                  width: 192, height: 192, top: '50%', left: '50%', translate: '-50% -50%',
                   border: '1.5px solid rgba(251,146,60,0.60)',
                   animation: `siri-pulse 2.2s cubic-bezier(0.4,0,0.6,1) ${delay}s infinite`,
                 }} />
               ))
             )}
 
-            {/* Tap target wraps the orb so the button click area is the full circle */}
+            {/* Orb tap button */}
             <button
               onClick={recording ? stopDetect : !loading ? startDetect : undefined}
               disabled={loading || practiceRecording}
               aria-label={recording ? 'Stop recording' : 'Start recording'}
               style={{
                 position: 'relative', width: 192, height: 192,
-                borderRadius: '50%', padding: 0, border: 'none',
-                background: 'none', outline: 'none',
-                cursor: loading ? 'default' : 'pointer',
+                borderRadius: '50%', padding: 0, border: 'none', background: 'none',
+                outline: 'none', cursor: loading ? 'default' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {/* SiriOrb — ref receives class + --orb-shadow from audio rAF loop */}
-              <SiriOrb ref={orbRef} size={192} className={recording ? '' : ''} />
-
-              {/* Mic — hidden during loading, orb+arc communicates state */}
+              <SiriOrb ref={orbRef} size={192} />
               <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -401,11 +388,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                   <Mic style={{
                     width: 34, height: 34,
                     color: recording ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.28)',
-                    filter: recording
-                      ? 'drop-shadow(0 0 14px rgba(255,255,255,0.7))'
-                      : 'none',
-                    transform: recording && hasSound
-                      ? 'scale(1.25)' : recording ? 'scale(1.07)' : 'scale(1)',
+                    filter: recording ? 'drop-shadow(0 0 14px rgba(255,255,255,0.7))' : 'none',
+                    transform: recording && hasSound ? 'scale(1.25)' : recording ? 'scale(1.07)' : 'scale(1)',
                     transition: 'all 0.25s ease',
                   }} />
                 )}
@@ -414,17 +398,15 @@ export default function FreeSpeak({ mode, dataset }: Props) {
           </div>
         </div>
 
-        {/* State label */}
+        {/* Status label */}
         <p style={{
-          fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
-          fontWeight: 600, transition: 'color 0.4s ease',
-          color: recording
-            ? 'rgba(251,146,60,0.95)'
-            : loading
-              ? 'rgba(251,146,60,0.45)'
-              : isComplete
-                ? 'rgba(251,146,60,0.65)'
-                : 'rgba(255,255,255,0.20)',
+          fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.20em',
+          textTransform: 'uppercase', fontWeight: 500,
+          transition: 'color 0.4s ease', margin: 0,
+          color: recording ? 'rgba(251,146,60,0.90)'
+            : loading ? 'rgba(251,146,60,0.40)'
+            : isComplete ? 'rgba(251,146,60,0.55)'
+            : 'rgba(255,255,255,0.16)',
         }}>
           {recording
             ? (isJapanese ? 'กำลังฟัง...' : 'Listening...')
@@ -435,44 +417,63 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 : (isJapanese ? 'แตะเพื่อพูด' : 'Tap to speak')}
         </p>
 
-        {/* Waveform bars — crimson when voice, dim when silent */}
+        {/* Waveform bars */}
         {recording && (
-          <div className="flex items-end gap-0.75" style={{ height: 26 }}>
+          <div className="flex items-end gap-0.75" style={{ height: 22, opacity: hasSound ? 0.85 : 0.18 }}>
             {Array.from({ length: 9 }, (_, i) => (
               <div key={i} className="bar" style={{
                 '--i': i,
                 height: `${[38,62,82,100,88,100,82,62,38][i]}%`,
-                background: hasSound ? '#fb923c' : 'rgba(255,255,255,0.12)',
+                background: hasSound ? 'rgba(251,146,60,0.85)' : 'rgba(255,255,255,0.15)',
                 animationPlayState: hasSound ? 'running' : 'paused',
-                opacity: hasSound ? 0.85 : 0.2,
               } as React.CSSProperties} />
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Error ─────────────────────────────────────────────────────────── */}
+      {/* ── Error ────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="error-box w-full" style={{ animation: 'fadeUp 0.3s ease both' }}>
+        <div style={{
+          width: '100%', padding: '10px 14px',
+          borderRadius: 10, animation: 'fadeUp 0.3s ease both',
+          border: '1px solid rgba(248,113,113,0.15)',
+          background: 'rgba(248,113,113,0.05)',
+          fontFamily: 'var(--font-mono)', fontSize: 12,
+          color: 'rgba(252,165,165,0.80)',
+        }}>
           {error}
         </div>
       )}
 
-      {/* ── YOU SAID card — live interim while recording, then Whisper final result ──── */}
-      {displayText ? (
-        <div className="section-card w-full" style={{ animation: 'fadeUp 0.25s ease both' }}>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="ui-label mb-2">You said</p>
-              {/* Live interim: plain updating text (no stagger — it changes too fast) */}
+      {/* ── You said card ────────────────────────────────────────────────── */}
+      {displayText && (
+        <div style={{
+          width: '100%', padding: '16px 18px',
+          borderRadius: 14, animation: 'fadeUp 0.25s ease both',
+          background: 'rgba(255,255,255,0.025)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(8px)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+                textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)',
+                marginBottom: 8, margin: '0 0 8px',
+              }}>
+                {isJapanese ? 'you said' : 'you said'}
+              </p>
               {recording && (
-                <p className={`text-2xl font-bold leading-snug ${accentColor}`}>
+                <p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, margin: 0,
+                  color: isJapanese ? '#f87171' : '#fb923c' }}>
                   {interimText}
                 </p>
               )}
-              {/* Whisper confirmed result: per-word blur-fade-in animation */}
-              {!recording && (transcribeResult?.ok && transcribeResult.transcribed) && (
-                <p className={`text-2xl font-bold leading-snug ${accentColor}`} key={transcribeResult.transcribed}>
+              {!recording && transcribeResult?.ok && transcribeResult.transcribed && (
+                <p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, margin: 0,
+                  color: isJapanese ? '#f87171' : '#fb923c' }}
+                  key={transcribeResult.transcribed}>
                   {transcribeResult.transcribed.split(/\s+/).map((word, i) => (
                     <span key={i} className="word-appear" style={{ animationDelay: `${i * 0.07}s` }}>
                       {word}{' '}
@@ -480,61 +481,79 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                   ))}
                 </p>
               )}
-              {/* During Whisper loading: show last interim as muted placeholder */}
               {loading && !transcribeResult && interimText && (
-                <p className={`text-2xl font-bold leading-snug ${accentColor} opacity-40`}>
+                <p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.25, margin: 0,
+                  color: isJapanese ? '#f87171' : '#fb923c', opacity: 0.35 }}>
                   {interimText}
                 </p>
               )}
             </div>
             {!loading && !recording && (
-              <button
-                onClick={resetAll}
-                title="Reset"
-                className="text-white/20 hover:text-white/50 transition-colors mt-1 shrink-0"
+              <button onClick={resetAll} title="Reset" style={{
+                background: 'none', border: 'none', padding: 4, cursor: 'pointer',
+                color: 'rgba(255,255,255,0.18)', marginTop: 2, flexShrink: 0,
+                transition: 'color 0.2s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.50)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
               >
-                <RefreshCw size={14} />
+                <RefreshCw size={13} />
               </button>
             )}
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* ── PRONUNCIATION GUIDE skeleton — while GPT lookup runs ──────────── */}
+      {/* ── Pronunciation guide — loading skeleton ────────────────────────── */}
       {isLookingUp && (
-        <div className="section-card w-full" style={{ animation: 'fadeUp 0.35s ease both' }}>
-          <p className="ui-label mb-3">
-            {isJapanese ? 'Pronunciation guide' : 'Pronunciation guide'}
+        <div style={{
+          width: '100%', padding: '16px 18px', borderRadius: 14,
+          animation: 'fadeUp 0.35s ease both',
+          background: 'rgba(255,255,255,0.025)',
+          border: '1px solid rgba(255,255,255,0.07)',
+        }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 12px' }}>
+            pronunciation guide
           </p>
-          <div className="flex items-center gap-3">
-            <div className="thinking">
-              <span /><span /><span />
-            </div>
-            <span className="text-xs text-white/25 font-mono">
-              {isJapanese ? 'กำลังสร้างคำแนะนำ...' : 'Generating guide...'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="thinking"><span /><span /><span /></div>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.22)' }}>
+              {isJapanese ? 'Generating guide...' : 'Generating guide...'}
             </span>
           </div>
         </div>
       )}
 
-      {/* ── WordCard + practice ────────────────────────────────────────────── */}
+      {/* ── WordCard + practice ───────────────────────────────────────────── */}
       {matchedEntry && !loading && (
         <>
-          <button
-            onClick={resetAll}
-            className="self-start flex items-center gap-1.5 text-[11px] text-white/20
-              hover:text-white/50 transition-colors -mb-1"
+          {/* Back / reset link */}
+          <button onClick={resetAll} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.10em',
+            color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4,
+          }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
           >
-            <RefreshCw size={11} />
+            <RefreshCw size={10} />
             {isJapanese ? 'กลับ / พูดคำอื่น' : '戻る / 別の語を話す'}
           </button>
 
           <WordCard entry={matchedEntry} mode={mode} />
 
-          {/* Practice */}
-          <div className="section-card w-full space-y-3">
-            <p className={`section-label flex items-center gap-1.5`}>
-              <Mic size={11} />
+          {/* Practice card */}
+          <div style={{
+            width: '100%', padding: '16px 18px', borderRadius: 14,
+            background: 'rgba(255,255,255,0.025)',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 14px',
+              display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Mic size={10} style={{ opacity: 0.5 }} />
               {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
             </p>
 
@@ -545,45 +564,66 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 onReset={() => { setAssessResult(null); setPracticeError(null) }}
               />
             ) : practiceLoading ? (
-              <div className="flex items-center gap-3 py-1">
-                <div className={`w-5 h-5 rounded-full border-2 border-t-transparent animate-spin shrink-0
-                  ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
-                <span className="text-xs text-white/30 font-mono">
-                  {isJapanese ? 'กำลังวิเคราะห์...' : 'Scoring...'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  border: `2px solid ${isJapanese ? 'rgba(248,113,113,0.60)' : 'rgba(251,146,60,0.60)'}`,
+                  borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite', flexShrink: 0,
+                }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                  {isJapanese ? 'Scoring...' : 'Scoring...'}
                 </span>
               </div>
             ) : practiceRecording ? (
-              <div className="flex flex-col items-center gap-3 py-1">
-                <p className={`text-[10px] tracking-[0.18em] uppercase ${accentColor}`}>
-                  {isJapanese ? 'กำลังฟัง...' : 'Listening...'}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '4px 0' }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em',
+                  textTransform: 'uppercase', margin: 0,
+                  color: isJapanese ? 'rgba(248,113,113,0.85)' : 'rgba(251,146,60,0.85)' }}>
+                  {isJapanese ? 'Listening...' : 'Listening...'}
                 </p>
-                <button
-                  onClick={stopPractice}
-                  className="flex items-center gap-1.5 text-xs text-white/35 hover:text-white/60
-                    transition border border-white/10 hover:border-white/20
-                    px-4 py-1.5 rounded-full"
+                <button onClick={stopPractice} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.10em',
+                  color: 'rgba(255,255,255,0.35)', cursor: 'pointer',
+                  background: 'none', border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 999, padding: '6px 16px', transition: 'all 0.2s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
                 >
                   <MicOff size={11} />
-                  {isJapanese ? 'หยุดและให้คะแนน' : 'Stop & score'}
+                  {isJapanese ? 'Stop & score' : 'Stop & score'}
                 </button>
               </div>
             ) : (
               <>
-                <button
-                  onClick={startPractice}
-                  className={`w-full py-2.5 rounded-xl text-white text-xs font-semibold
-                    tracking-[0.12em] uppercase flex items-center justify-center gap-2
-                    transition-all active:scale-[0.98]
-                    ${isJapanese
-                      ? 'bg-red-500/70 hover:bg-red-500/90'
-                      : 'bg-amber-500/70 hover:bg-amber-500/90'
-                    }`}
+                <button onClick={startPractice} style={{
+                  width: '100%', padding: '11px 0', borderRadius: 10, border: 'none',
+                  fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+                  letterSpacing: '0.10em', textTransform: 'uppercase', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  color: 'rgba(255,255,255,0.92)', transition: 'opacity 0.2s, transform 0.15s',
+                  background: isJapanese
+                    ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))'
+                    : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))',
+                  boxShadow: isJapanese
+                    ? '0 4px 24px rgba(220,38,38,0.20)'
+                    : '0 4px 24px rgba(234,88,12,0.22)',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                  onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)' }}
+                  onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
                 >
                   <Mic size={13} />
                   {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
                 </button>
                 {practiceError && (
-                  <p className="text-xs text-red-400/80">{practiceError}</p>
+                  <p style={{ margin: '10px 0 0', fontFamily: 'var(--font-mono)',
+                    fontSize: 11, color: 'rgba(252,165,165,0.75)' }}>
+                    {practiceError}
+                  </p>
                 )}
               </>
             )}
@@ -591,23 +631,44 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         </>
       )}
 
-      {/* ── Preset chips — only when idle with no result ───────────────────── */}
+      {/* ── Preset word chips ─────────────────────────────────────────────── */}
       {!matchedEntry && !loading && !transcribeResult && (
-        <div className="w-full" style={{ animation: 'fadeUp 0.4s ease both' }}>
-          <p className="ui-label mb-3">
-            {isJapanese ? 'หรือเลือกคำจากคลัง' : 'または語彙から選ぶ'}
+        <div style={{ width: '100%', animation: 'fadeUp 0.4s ease both' }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.20)',
+            margin: '0 0 10px' }}>
+            {isJapanese ? 'หรือเลือกจากคลัง' : 'または語彙から選ぶ'}
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
             {dataset.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => pickPreset(entry)}
-                className={`shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border
-                  transition-all active:scale-95 hover:brightness-125
-                  ${accentBg} ${accentBorder}`}
+              <button key={entry.id} onClick={() => pickPreset(entry)} style={{
+                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                padding: '9px 14px', borderRadius: 12, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.04)',
+                border: isJapanese
+                  ? '1px solid rgba(248,113,113,0.18)'
+                  : '1px solid rgba(251,146,60,0.18)',
+                transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+              }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.40)' : 'rgba(251,146,60,0.40)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.18)' : 'rgba(251,146,60,0.18)'
+                }}
+                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
+                onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
               >
-                <span className={`text-sm font-bold ${accentColor}`}>{entry.word}</span>
-                <span className="text-xs text-white/30 mt-0.5">{entry.romanization}</span>
+                <span style={{ fontSize: 15, fontWeight: 700,
+                  color: isJapanese ? '#f87171' : '#fb923c' }}>
+                  {entry.word}
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                  color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>
+                  {entry.romanization}
+                </span>
               </button>
             ))}
           </div>
@@ -616,3 +677,4 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     </div>
   )
 }
+
