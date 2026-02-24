@@ -295,7 +295,19 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
         {/* Outer breathing ring (recording only) */}
         <div className="relative flex items-center justify-center">
-          {recording && (
+
+          {/* Voice pulse ripples — only when sound detected */}
+          {recording && hasSound && (<>
+            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
+              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out infinite' }} />
+            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
+              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out 0.45s infinite' }} />
+            <span className={`absolute rounded-full ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
+              style={{ width: '112px', height: '112px', opacity: 0, animation: 'voice-ripple 1.4s ease-out 0.9s infinite' }} />
+          </>)}
+
+          {/* Slow breathing ring when recording but silent */}
+          {recording && !hasSound && (
             <span
               className={`absolute rounded-full border transition-all duration-700
                 ${isJapanese ? 'border-red-500/25' : 'border-amber-500/25'}`}
