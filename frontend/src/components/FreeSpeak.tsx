@@ -61,11 +61,14 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
   const orbRef = useRef<HTMLDivElement>(null)
+  // Exponential moving average — prevents flickering from raw RMS
+  const smoothRmsRef = useRef(0)
 
   const resetOrbVars = () => {
-    orbRef.current?.style.setProperty('--input-level', '0')
-    orbRef.current?.style.setProperty('--anim-dur', '22s')
-    orbRef.current?.style.removeProperty('--orb-shadow')
+    smoothRmsRef.current = 0
+    if (!orbRef.current) return
+    orbRef.current.classList.remove('siri-orb--speaking', 'siri-orb--listening')
+    orbRef.current.style.removeProperty('--orb-shadow')
   }
 
   // Web Speech API instance (interim-only, runs in parallel with MediaRecorder)
@@ -183,19 +186,20 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         for (const v of dataArray) sumSq += (v - 128) ** 2
         const rms = Math.sqrt(sumSq / dataArray.length)
 
-        // ── Drive SiriOrb CSS vars directly (zero React re-renders) ──────
+        // ── Voice-reactive orb: smooth RMS → CSS vars + DOM class (zero re-renders) ──
+        // Exponential MA removes the frame-to-frame flicker
+        smoothRmsRef.current = smoothRmsRef.current * 0.82 + rms * 0.18
+        const s = smoothRmsRef.current
         if (orbRef.current) {
-          const level = Math.min(rms / 48, 1)                        // 0-1 normalised
-          const dur   = rms > SILENCE_THRESHOLD
-            ? Math.max(3.5, 22 - level * 19).toFixed(1)              // 22s idle → 3.5s loud
-            : '14'                                                    // slow drift while waiting
-          const glow  = Math.round(45 + level * 70)
-          const alpha1 = (0.20 + level * 0.60).toFixed(2)
-          const alpha2 = (0.08 + level * 0.22).toFixed(2)
-          orbRef.current.style.setProperty('--input-level', level.toFixed(3))
-          orbRef.current.style.setProperty('--anim-dur', `${dur}s`)
+          const isSpeaking = s > SILENCE_THRESHOLD
+          orbRef.current.classList.toggle('siri-orb--speaking', isSpeaking)
+          orbRef.current.classList.toggle('siri-orb--listening', !isSpeaking)
+          // Only update glow (box-shadow is GPU-composited, no layout thrash)
+          const glow   = Math.round(38 + (s / 48) * 80)
+          const alpha1 = Math.min(0.22 + (s / 48) * 0.65, 0.87).toFixed(2)
+          const alpha2 = Math.min(0.08 + (s / 48) * 0.20, 0.28).toFixed(2)
           orbRef.current.style.setProperty('--orb-shadow',
-            `0 0 ${glow}px rgba(220,38,38,${alpha1}), 0 0 ${glow * 2}px rgba(220,38,38,${alpha2})`)
+            `0 0 ${glow}px rgba(210,30,30,${alpha1}), 0 0 ${glow * 2}px rgba(185,15,15,${alpha2})`)
         }
 
         if (rms > SILENCE_THRESHOLD) {
@@ -352,8 +356,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {/* SiriOrb — ref receives CSS var updates from audio rAF loop */}
-              <SiriOrb ref={orbRef} size={192} />
+              {/* SiriOrb — ref receives class + --orb-shadow from audio rAF loop */}
+              <SiriOrb ref={orbRef} size={192} className={recording ? '' : ''} />
 
               {/* Mic / spinner — floated above the orb */}
               <div style={{

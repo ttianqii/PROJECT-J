@@ -1,25 +1,22 @@
 /**
- * SiriOrb — faithful smoothui implementation, dark-theme + always crimson.
+ * SiriOrb — always crimson, smooth ChatGPT-style pulse.
  *
- * Voice reactivity is driven entirely by CSS custom properties set directly
- * on the container div from the audio rAF loop — zero React re-renders.
+ * JS drives two things via direct DOM access (zero re-renders):
+ *   - Toggle class "siri-orb--speaking" when voice detected
+ *   - Set CSS var --orb-shadow (glow intensity, smoothed so no flicker)
  *
- * CSS vars the parent can write at any time:
- *   --input-level  0-1  (raw voice level; drives blur, contrast, scale, glow)
- *   --anim-dur     e.g. "5s" (rotation speed; lower = faster / more agitated)
- *   --orb-shadow   full box-shadow string (optional override for glow)
+ * All other animation (rotation, pulse) is pure CSS.
  */
 import { forwardRef } from 'react'
 
 const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }>(
   ({ size = 192, className = '' }, ref) => {
-    const blur    = Math.max(size * 0.015, 4)
-    const contrast= Math.max(size * 0.008, 1.5)
-    const dot     = Math.max(size * 0.008, 0.1)
-    const shadow  = Math.max(size * 0.008, 2)
-    const maskR   = size < 100 ? '15%' : '25%'
+    const blur     = Math.max(size * 0.015, 4)     // fixed blur — no JS changes
+    const contrast = Math.max(size * 0.008, 1.5)   // fixed contrast
+    const dot      = Math.max(size * 0.008, 0.1)
+    const shadow   = Math.max(size * 0.008, 2)
+    const maskR    = size < 100 ? '15%' : '25%'
 
-    // Inline CSS keeps the component fully self-contained (no globals needed)
     const css = `
       @property --angle {
         syntax: "<angle>";
@@ -27,17 +24,36 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         initial-value: 0deg;
       }
 
+      /* ── Container — pulse scale lives here ── */
       .siri-orb {
         display: grid;
         grid-template-areas: "stack";
         border-radius: 50%;
         overflow: hidden;
         position: relative;
-        /* Default glow — overridden by --orb-shadow from JS */
-        box-shadow: var(--orb-shadow, 0 0 50px rgba(200,30,30,0.28), 0 0 90px rgba(180,20,20,0.10));
-        /* Scale up slightly when voice is present */
-        transform: scale(calc(1 + var(--input-level, 0) * 0.045));
-        transition: transform 0.12s ease;
+        box-shadow: var(
+          --orb-shadow,
+          0 0 42px rgba(180,20,20,0.30),
+          0 0 80px rgba(160,10,10,0.12)
+        );
+        /* Idle: very slow gentle float */
+        animation: siri-orb-pulse 5s ease-in-out infinite;
+        will-change: transform, box-shadow;
+      }
+
+      /* Listening (recording, waiting for voice) — slow breathe */
+      .siri-orb.siri-orb--listening {
+        animation: siri-orb-pulse 3s ease-in-out infinite;
+      }
+
+      /* Speaking — fast, energetic ChatGPT-style pulse */
+      .siri-orb.siri-orb--speaking {
+        animation: siri-orb-pulse 1.1s ease-in-out infinite;
+      }
+
+      @keyframes siri-orb-pulse {
+        0%, 100% { transform: scale(1);    }
+        50%       { transform: scale(1.10); }
       }
 
       .siri-orb::before,
@@ -49,7 +65,7 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         border-radius: 50%;
       }
 
-      /* ── Main fluid layer ── */
+      /* ── Main conic fluid layer — fixed speed, no JS interference ── */
       .siri-orb::before {
         background:
           conic-gradient(from calc(var(--angle) * 2)  at 25% 70%, var(--c3), transparent 20% 80%, var(--c3)),
@@ -60,13 +76,14 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
           conic-gradient(from calc(var(--angle) * -2) at 85% 10%, var(--c3), transparent 20% 80%, var(--c3)),
           var(--bg);
         box-shadow: inset var(--bg) 0 0 ${shadow}px ${(shadow * 0.2).toFixed(1)}px;
-        /* blur + contrast react to voice level — this IS the Siri liquid effect */
-        filter:
-          blur(calc(${blur}px + var(--input-level, 0) * 16px))
-          contrast(calc(${contrast} + var(--input-level, 0) * 1.1));
-        /* rotation speed driven by --anim-dur (set from JS audio loop) */
-        animation: siri-orb-rotate var(--anim-dur, 22s) linear infinite;
+        /* FIXED filter — never updated from JS, so zero flicker */
+        filter: blur(${blur}px) contrast(${contrast});
+        animation: siri-orb-rotate 14s linear infinite;
       }
+
+      /* Faster rotation while speaking */
+      .siri-orb.siri-orb--speaking::before  { animation-duration: 5s; }
+      .siri-orb.siri-orb--listening::before { animation-duration: 10s; }
 
       /* ── Dot-grid glassy overlay ── */
       .siri-orb::after {
@@ -84,7 +101,7 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
       @keyframes siri-orb-rotate { to { --angle: 360deg; } }
 
       @media (prefers-reduced-motion: reduce) {
-        .siri-orb::before { animation: none; }
+        .siri-orb, .siri-orb::before { animation: none; }
       }
     `
 
@@ -95,11 +112,16 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         style={{
           width: size,
           height: size,
-          /* ── Always crimson palette ── */
-          '--bg': 'oklch(7% 0.03 15)',    // near-black with red tint
-          '--c1': 'oklch(60% 0.26 18)',   // vivid red
-          '--c2': 'oklch(50% 0.30 5)',    // deep crimson
-          '--c3': 'oklch(66% 0.22 34)',   // red-orange corona
+          /*
+           * Pure crimson palette — all hues 7-20, zero orange.
+           * hue 0-10  = crimson/maroon
+           * hue 10-20 = vivid red
+           * hue 30+   = orange (AVOID)
+           */
+          '--bg': 'oklch(8% 0.04 12)',   // near-black blood red
+          '--c1': 'oklch(60% 0.30 16)',  // vivid pure red
+          '--c2': 'oklch(42% 0.34 7)',   // deep crimson / maroon
+          '--c3': 'oklch(53% 0.26 20)',  // rich mid-red (hue 20 = still red, NOT orange)
         } as React.CSSProperties}
       >
         <style>{css}</style>
