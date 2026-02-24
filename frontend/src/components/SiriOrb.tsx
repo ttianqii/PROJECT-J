@@ -24,7 +24,7 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         initial-value: 0deg;
       }
 
-      /* ── Container — pulse scale lives here ── */
+      /* ── Container — constant gentle breathe, never changes speed ── */
       .siri-orb {
         display: grid;
         grid-template-areas: "stack";
@@ -33,27 +33,17 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         position: relative;
         box-shadow: var(
           --orb-shadow,
-          0 0 42px rgba(180,20,20,0.30),
-          0 0 80px rgba(160,10,10,0.12)
+          0 0 48px rgba(234,88,12,0.35),
+          0 0 90px rgba(220,60,0,0.14)
         );
-        /* Idle: very slow gentle float */
+        /* Always the same calm breathe — pulse rings handle voice reactivity */
         animation: siri-orb-pulse 5s ease-in-out infinite;
         will-change: transform, box-shadow;
       }
 
-      /* Listening (recording, waiting for voice) — slow breathe */
-      .siri-orb.siri-orb--listening {
-        animation: siri-orb-pulse 3s ease-in-out infinite;
-      }
-
-      /* Speaking — fast, energetic ChatGPT-style pulse */
-      .siri-orb.siri-orb--speaking {
-        animation: siri-orb-pulse 1.1s ease-in-out infinite;
-      }
-
       @keyframes siri-orb-pulse {
         0%, 100% { transform: scale(1);    }
-        50%       { transform: scale(1.10); }
+        50%       { transform: scale(1.07); }
       }
 
       .siri-orb::before,
@@ -81,9 +71,7 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
         animation: siri-orb-rotate 14s linear infinite;
       }
 
-      /* Faster rotation while speaking */
-      .siri-orb.siri-orb--speaking::before  { animation-duration: 5s; }
-      .siri-orb.siri-orb--listening::before { animation-duration: 10s; }
+      /* Rotation is always the same — consistent, natural ─── */
 
       /* ── Dot-grid glassy overlay ── */
       .siri-orb::after {
@@ -113,15 +101,15 @@ const SiriOrb = forwardRef<HTMLDivElement, { size?: number; className?: string }
           width: size,
           height: size,
           /*
-           * Pure crimson palette — all hues 7-20, zero orange.
-           * hue 0-10  = crimson/maroon
-           * hue 10-20 = vivid red
-           * hue 30+   = orange (AVOID)
+           * Sun palette — ref image: deep red edge → orange mid → warm white center.
+           * hue 18  = vivid red
+           * hue 42  = bright orange
+           * hue 72  = warm golden-white
            */
-          '--bg': 'oklch(8% 0.04 12)',   // near-black blood red
-          '--c1': 'oklch(60% 0.30 16)',  // vivid pure red
-          '--c2': 'oklch(42% 0.34 7)',   // deep crimson / maroon
-          '--c3': 'oklch(53% 0.26 20)',  // rich mid-red (hue 20 = still red, NOT orange)
+          '--bg': 'oklch(16% 0.07 22)',   // deep red-brown base (not pitch black)
+          '--c1': 'oklch(57% 0.28 20)',   // vivid crimson-red
+          '--c2': 'oklch(72% 0.22 44)',   // bright orange
+          '--c3': 'oklch(88% 0.15 70)',   // warm golden-white highlight
         } as React.CSSProperties}
       >
         <style>{css}</style>

@@ -66,9 +66,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
   const resetOrbVars = () => {
     smoothRmsRef.current = 0
-    if (!orbRef.current) return
-    orbRef.current.classList.remove('siri-orb--speaking', 'siri-orb--listening')
-    orbRef.current.style.removeProperty('--orb-shadow')
+    orbRef.current?.style.removeProperty('--orb-shadow')
   }
 
   // Web Speech API instance (interim-only, runs in parallel with MediaRecorder)
@@ -186,20 +184,18 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         for (const v of dataArray) sumSq += (v - 128) ** 2
         const rms = Math.sqrt(sumSq / dataArray.length)
 
-        // ── Voice-reactive orb: smooth RMS → CSS vars + DOM class (zero re-renders) ──
-        // Exponential MA removes the frame-to-frame flicker
+        // ── Voice-reactive orb: smooth RMS → glow only (orb animation never changes) ──
+        // Exponential MA: damps spikes so glow is smooth, not flickery
         smoothRmsRef.current = smoothRmsRef.current * 0.82 + rms * 0.18
         const s = smoothRmsRef.current
         if (orbRef.current) {
-          const isSpeaking = s > SILENCE_THRESHOLD
-          orbRef.current.classList.toggle('siri-orb--speaking', isSpeaking)
-          orbRef.current.classList.toggle('siri-orb--listening', !isSpeaking)
-          // Only update glow (box-shadow is GPU-composited, no layout thrash)
-          const glow   = Math.round(38 + (s / 48) * 80)
-          const alpha1 = Math.min(0.22 + (s / 48) * 0.65, 0.87).toFixed(2)
-          const alpha2 = Math.min(0.08 + (s / 48) * 0.20, 0.28).toFixed(2)
+          // Only write box-shadow (GPU-composited, no repaint, no flicker)
+          const level  = Math.min(s / 48, 1)
+          const glow   = Math.round(44 + level * 90)
+          const alpha1 = Math.min(0.30 + level * 0.55, 0.85).toFixed(2)
+          const alpha2 = Math.min(0.10 + level * 0.22, 0.30).toFixed(2)
           orbRef.current.style.setProperty('--orb-shadow',
-            `0 0 ${glow}px rgba(210,30,30,${alpha1}), 0 0 ${glow * 2}px rgba(185,15,15,${alpha2})`)
+            `0 0 ${glow}px rgba(234,88,12,${alpha1}), 0 0 ${glow * 2}px rgba(251,146,60,${alpha2})`)
         }
 
         if (rms > SILENCE_THRESHOLD) {
@@ -337,7 +333,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                   width: 192, height: 192,
                   top: '50%', left: '50%',
                   translate: '-50% -50%',
-                  border: '1.5px solid rgba(220,38,38,0.55)',
+                  border: '1.5px solid rgba(251,146,60,0.60)',
                   animation: `siri-pulse 2.2s cubic-bezier(0.4,0,0.6,1) ${delay}s infinite`,
                 }} />
               ))
@@ -393,12 +389,12 @@ export default function FreeSpeak({ mode, dataset }: Props) {
           fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase',
           fontWeight: 600, transition: 'color 0.4s ease',
           color: recording
-            ? 'rgba(248,113,113,0.9)'
+            ? 'rgba(251,146,60,0.95)'
             : loading
-              ? 'rgba(248,113,113,0.45)'
+              ? 'rgba(251,146,60,0.45)'
               : isComplete
-                ? 'rgba(248,113,113,0.6)'
-                : 'rgba(255,255,255,0.2)',
+                ? 'rgba(251,146,60,0.65)'
+                : 'rgba(255,255,255,0.20)',
         }}>
           {recording
             ? (isJapanese ? 'กำลังฟัง...' : 'Listening...')
@@ -416,7 +412,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               <div key={i} className="bar" style={{
                 '--i': i,
                 height: `${[38,62,82,100,88,100,82,62,38][i]}%`,
-                background: hasSound ? '#f87171' : 'rgba(255,255,255,0.12)',
+                background: hasSound ? '#fb923c' : 'rgba(255,255,255,0.12)',
                 animationPlayState: hasSound ? 'running' : 'paused',
                 opacity: hasSound ? 0.85 : 0.2,
               } as React.CSSProperties} />
