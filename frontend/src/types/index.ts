@@ -91,3 +91,11 @@ export interface CharDiffToken {
   char: string
   status: 'correct' | 'wrong' | 'missing' | 'extra'
 }
+
+// ─── Transcribe API types (free-speak mode) ───────────────────────────────────
+export interface TranscribeResponse {
+  ok: boolean
+  transcribed: string
+  wordTimings: WordTiming[]
+  error?: string
+}

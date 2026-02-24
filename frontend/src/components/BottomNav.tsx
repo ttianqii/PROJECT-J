@@ -1,4 +1,4 @@
-import { Globe, BookOpen, Mic, Star } from 'lucide-react'
+import { Globe, BookOpen, Mic, Star, Lock } from 'lucide-react'
 import type { LearnerMode } from '../types'
 
 export type AppTab = 'language' | 'words' | 'practice' | 'preset'
@@ -7,6 +7,7 @@ interface Props {
   activeTab: AppTab
   mode: LearnerMode
   onTabChange: (tab: AppTab) => void
+  locked?: boolean   // true = only language tab is accessible
 }
 
 interface NavItem {
@@ -23,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: 'preset',   Icon: Star,      labelTh: 'ชุดฝึก',  labelJa: 'セット' },
 ]
 
-export function BottomNav({ activeTab, mode, onTabChange }: Props) {
+export function BottomNav({ activeTab, mode, onTabChange, locked = false }: Props) {
   const isJapanese = mode === 'th-ja'
   const activeColor = isJapanese ? 'text-red-400' : 'text-amber-400'
   const activeBg    = isJapanese ? 'bg-red-500/15 border-red-500/30' : 'bg-amber-500/15 border-amber-500/30'
@@ -33,17 +34,27 @@ export function BottomNav({ activeTab, mode, onTabChange }: Props) {
       <div className="flex items-stretch justify-around max-w-lg mx-auto">
         {NAV_ITEMS.map(({ tab, Icon, labelTh, labelJa }) => {
           const isActive = tab === activeTab
+          const isDisabled = locked && tab !== 'language'
           return (
             <button
               key={tab}
-              onClick={() => onTabChange(tab)}
+              onClick={() => !isDisabled && onTabChange(tab)}
+              disabled={isDisabled}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all duration-200
-                ${isActive ? activeColor : 'text-gray-500 hover:text-gray-300'}`}
+                ${isDisabled
+                  ? 'text-gray-700 cursor-not-allowed'
+                  : isActive
+                    ? activeColor
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
               aria-current={isActive ? 'page' : undefined}
             >
               <div className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl transition-all duration-200
-                ${isActive ? activeBg + ' border' : ''}`}>
-                <Icon size={22} strokeWidth={isActive ? 2.2 : 1.6} />
+                ${isActive && !isDisabled ? activeBg + ' border' : ''}`}>
+                {isDisabled
+                  ? <Lock size={20} strokeWidth={1.6} />
+                  : <Icon size={22} strokeWidth={isActive ? 2.2 : 1.6} />
+                }
                 <span className="text-[10px] font-semibold leading-none tracking-wide">
                   {isJapanese ? labelTh : labelJa}
                 </span>

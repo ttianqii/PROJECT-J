@@ -271,3 +271,37 @@ export const pronunciationRoutes = new Elysia({ prefix: '/api' })
       }),
     },
   )
+
+  // ─── /api/transcribe ── free-speak: just Whisper, no scoring ─────────────
+  .post(
+    '/transcribe',
+    async ({ body }) => {
+      const { audio, lang } = body as { audio: File; lang: 'ja' | 'th' }
+      try {
+        const openai = getOpenAI()
+        const transcriptionRes = await openai.audio.transcriptions.create({
+          model: 'whisper-1',
+          file: audio,
+          language: lang,
+          response_format: 'verbose_json',
+          timestamp_granularities: ['word'],
+        })
+        const transcribed = transcriptionRes.text?.trim() ?? ''
+        const wordTimings = (transcriptionRes.words ?? []).map((w) => ({
+          word: w.word,
+          start: w.start,
+          end: w.end,
+        }))
+        return { ok: true, transcribed, wordTimings }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        return { ok: false, transcribed: '', wordTimings: [], error: msg }
+      }
+    },
+    {
+      body: t.Object({
+        audio: t.File(),
+        lang: t.Union([t.Literal('ja'), t.Literal('th')]),
+      }),
+    },
+  )

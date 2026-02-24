@@ -7,6 +7,7 @@ import { WordCard } from './components/WordCard'
 import { PronunciationRecorder } from './components/PronunciationRecorder'
 import { AccuracyFeedback } from './components/AccuracyFeedback'
 import { Volume2 } from 'lucide-react'
+import FreeSpeak from './components/FreeSpeak'
 import thJaData from './data/th-ja.json'
 import jaThData from './data/ja-th.json'
 
@@ -29,6 +30,7 @@ export default function App() {
   const [assessError, setAssessError] = useState<string | null>(null)
   const [backendOk, setBackendOk] = useState<boolean | null>(null)
   const [showWordDetail, setShowWordDetail] = useState(false)
+  const [languageChosen, setLanguageChosen] = useState(false)
 
   const dataset = mode === 'th-ja' ? TH_JA : JA_TH
   const visibleList = presetIds ? dataset.filter((e) => presetIds.includes(e.id)) : dataset
@@ -76,7 +78,7 @@ export default function App() {
     <LanguageSelectScreen
       mode={mode}
       onSelect={handleModeChange}
-      onContinue={() => setActiveTab('words')}
+      onContinue={() => { setLanguageChosen(true); setActiveTab('words') }}
     />
   )
 
@@ -143,19 +145,42 @@ export default function App() {
   const wordDetail = (
     <div className="flex flex-col gap-4 px-4 pt-4 pb-2">
       <button
-        onClick={() => setShowWordDetail(false)}
+        onClick={() => { setShowWordDetail(false); setAssessResult(null); setAssessError(null) }}
         className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors self-start"
       >
         ← {isJapanese ? 'กลับ' : '戻る'}
       </button>
       <WordCard entry={selectedEntry} mode={mode} />
-      <button
-        onClick={() => { setActiveTab('practice'); setAssessResult(null); setAssessError(null) }}
-        className={`w-full py-4 rounded-2xl font-bold text-white transition-all active:scale-95
-          ${isJapanese ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'}`}
-      >
-        🎤 {isJapanese ? 'ฝึกออกเสียงคำนี้' : 'この語を練習する'}
-      </button>
+
+      {/* ── Inline pronunciation practice ── */}
+      <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
+        <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">
+          🎤 {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
+        </p>
+        <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
+          <Volume2 size={12} className={accentColor} />
+          <span>{isJapanese ? 'กด 🔊 ฟังก่อน แล้วกด 🎤 พูด' : '🔊でお手本を聞いてから 🎤 で話してください'}</span>
+        </div>
+        {assessResult ? (
+          <AccuracyFeedback
+            result={assessResult}
+            mode={mode}
+            onReset={() => { setAssessResult(null); setAssessError(null) }}
+          />
+        ) : (
+          <PronunciationRecorder
+            entry={selectedEntry}
+            mode={mode}
+            onResult={(r) => { setAssessResult(r); setAssessError(null) }}
+            onError={(msg) => setAssessError(msg)}
+          />
+        )}
+        {assessError && !assessResult && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mt-2">
+            <p className="text-red-400 text-sm font-semibold">❌ {assessError}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -171,87 +196,8 @@ export default function App() {
     </>
   )
 
-  // ── Tab: Practice ────────────────────────────────────────────────────────
-  const tabPractice = (
-    <div className="flex flex-col gap-4 px-4 pt-4 pb-2">
-      <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
-        <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2">
-          {isJapanese ? 'คำที่กำลังฝึก' : '練習中の単語'}
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className={`text-4xl font-bold ${accentColor}`}>{selectedEntry.word}</p>
-            <p className="text-gray-400 text-sm mt-0.5">{selectedEntry.romanization}</p>
-            <p className="text-gray-500 text-xs mt-0.5">
-              {isJapanese ? selectedEntry.meaningTh : selectedEntry.meaningJa}
-            </p>
-          </div>
-          <button
-            onClick={() => setActiveTab('words')}
-            className="text-xs text-gray-500 hover:text-white underline shrink-0"
-          >
-            {isJapanese ? 'เปลี่ยนคำ' : '単語を変更'}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm text-gray-400 px-1">
-        <Volume2 size={14} className={accentColor} />
-        <span>
-          {isJapanese
-            ? 'กด 🔊 ฟังก่อน แล้วค่อยกด 🎤 พูด'
-            : '🔊でお手本を聞いてから 🎤 で話してください'}
-        </span>
-      </div>
-
-      {assessResult ? (
-        <AccuracyFeedback
-          result={assessResult}
-          mode={mode}
-          onReset={() => { setAssessResult(null); setAssessError(null) }}
-        />
-      ) : (
-        <PronunciationRecorder
-          entry={selectedEntry}
-          mode={mode}
-          onResult={(r) => { setAssessResult(r); setAssessError(null) }}
-          onError={(msg) => setAssessError(msg)}
-        />
-      )}
-
-      {assessError && !assessResult && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-4">
-          <p className="text-red-400 text-sm font-semibold">❌ {assessError}</p>
-          <p className="text-red-400/70 text-xs mt-1">
-            {isJapanese
-              ? 'ลองบันทึกเสียงใหม่ หรือตรวจสอบการเชื่อมต่อกับ backend'
-              : 'もう一度録音するか、バックエンドの接続を確認してください'}
-          </p>
-        </div>
-      )}
-
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
-          💡 {isJapanese ? 'เคล็ดลับ' : 'ヒント'}
-        </p>
-        {isJapanese ? (
-          <ul className="space-y-1.5 text-gray-400 text-xs">
-            <li>🔴 = โมระเสียงสูง · สีเทา = โมระเสียงต่ำ</li>
-            <li>⬇ = จุดที่เสียงลดลง (accent drop)</li>
-            <li>ฟัง 🔊 ก่อนพูดอย่างน้อย 3 รอบ</li>
-            <li>พูดช้าๆ ก่อน แล้วค่อยเพิ่มความเร็วขึ้น</li>
-          </ul>
-        ) : (
-          <ul className="space-y-1.5 text-gray-400 text-xs">
-            <li>タイ語には5つの声調があります</li>
-            <li>声調を間違えると意味が変わります！</li>
-            <li>🔊を何度も聞いて声調を記憶してください</li>
-            <li>ゆっくり発音することから始めましょう</li>
-          </ul>
-        )}
-      </div>
-    </div>
-  )
+  // ── Tab: Practice — free speak only ────────────────────────────────────
+  const tabPractice = <FreeSpeak mode={mode} dataset={dataset} />
 
   // ── Tab: Preset ──────────────────────────────────────────────────────────
   const tabPreset = (
@@ -291,13 +237,14 @@ export default function App() {
 
       {/* ── Tab content ───────────────────────────────────────────────────── */}
       <main className="max-w-lg mx-auto overflow-y-auto pb-[calc(88px+env(safe-area-inset-bottom))]">
-        {TAB_CONTENT[activeTab]}
+        {!languageChosen ? tabLanguage : TAB_CONTENT[activeTab]}
       </main>
 
       {/* ── Bottom navigation ─────────────────────────────────────────────── */}
       <BottomNav
-        activeTab={activeTab}
+        activeTab={!languageChosen ? 'language' : activeTab}
         mode={mode}
+        locked={!languageChosen}
         onTabChange={(tab) => {
           setActiveTab(tab)
           if (tab === 'words' && selectedId) setShowWordDetail(true)

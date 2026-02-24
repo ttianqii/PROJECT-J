@@ -1,4 +1,4 @@
-import type { AssessResponse } from '../types'
+import type { AssessResponse, TranscribeResponse } from '../types'
 
 const BASE = '/api'
 
@@ -46,4 +46,33 @@ export async function checkHealth(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Free-speak mode: sends recorded audio to Whisper for transcription only.
+ * No expected word, no scoring — just shows what the user said.
+ */
+export async function transcribeAudio(
+  audio: Blob,
+  lang: 'ja' | 'th',
+): Promise<TranscribeResponse> {
+  const form = new FormData()
+  let ext = 'webm'
+  if (audio.type.includes('ogg')) ext = 'ogg'
+  else if (audio.type.includes('mp4') || audio.type.includes('m4a')) ext = 'mp4'
+  else if (audio.type.includes('wav')) ext = 'wav'
+  form.append('audio', audio, `recording.${ext}`)
+  form.append('lang', lang)
+
+  const res = await fetch(`${BASE}/transcribe`, {
+    method: 'POST',
+    body: form,
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Server error ${res.status}: ${text}`)
+  }
+
+  return res.json() as Promise<TranscribeResponse>
 }
