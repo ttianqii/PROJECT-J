@@ -326,8 +326,42 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         {/* Ripple ring container — rings appear around the orb on voice */}
         <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
 
-          {/* Idle float wrapper */}
-          <div style={{ animation: 'orb-float 5s ease-in-out infinite' }}>
+          {/* Idle float wrapper — position:relative so halo arcs anchor to it */}
+          <div style={{ animation: 'orb-float 5s ease-in-out infinite', position: 'relative' }}>
+
+            {/* ── Loading scan-arc halo — orbits just outside the orb, floats with it ── */}
+            {loading && (
+              <>
+                {/* Primary comet sweep — fast orange-golden tail */}
+                <div style={{
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  width: 218, height: 218,
+                  marginTop: -109, marginLeft: -109,
+                  borderRadius: '50%',
+                  background: 'conic-gradient(from 0deg, transparent 48%, rgba(249,115,22,0.12) 65%, rgba(251,146,60,0.55) 84%, rgba(255,200,80,0.95) 97%, rgba(255,220,120,1) 100%)',
+                  WebkitMask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
+                  mask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
+                  boxShadow: '0 0 28px 6px rgba(251,146,60,0.30)',
+                  animation: 'scan-arc-spin 1.55s linear infinite',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Counter sweep — slow faint ghost arc opposite direction */}
+                <div style={{
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  width: 232, height: 232,
+                  marginTop: -116, marginLeft: -116,
+                  borderRadius: '50%',
+                  background: 'conic-gradient(from 180deg, transparent 60%, rgba(249,115,22,0.06) 78%, rgba(251,146,60,0.20) 95%, rgba(251,146,60,0.28) 100%)',
+                  WebkitMask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
+                  mask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
+                  animation: 'scan-arc-spin 3.8s linear infinite reverse',
+                  pointerEvents: 'none',
+                }} />
+              </>
+            )}
 
             {/* Pulse rings — CSS-only, driven by hasSound React state */}
             {recording && hasSound && (
@@ -358,72 +392,12 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               {/* SiriOrb — ref receives class + --orb-shadow from audio rAF loop */}
               <SiriOrb ref={orbRef} size={192} className={recording ? '' : ''} />
 
-              {/* Mic / spinner — floated above the orb */}
+              {/* Mic — hidden during loading, orb+arc communicates state */}
               <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                {loading ? (
-                  /* ── Orbiting-dot loader ── */
-                  <div style={{ position: 'relative', width: 68, height: 68 }}>
-
-                    {/* Outer dashed orbit ring */}
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      width: 64, height: 64, borderRadius: '50%',
-                      marginTop: -32, marginLeft: -32,
-                      border: '1px dashed rgba(251,146,60,0.22)',
-                      animation: 'orb-ring-spin 8s linear infinite',
-                    }} />
-
-                    {/* Inner dashed orbit ring */}
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      width: 34, height: 34, borderRadius: '50%',
-                      marginTop: -17, marginLeft: -17,
-                      border: '1px dashed rgba(251,146,60,0.15)',
-                      animation: 'orb-ring-spin 5s linear infinite reverse',
-                    }} />
-
-                    {/* 3 outer orbiting dots — orange, fading trail */}
-                    {([0, 1, 2] as const).map((i) => (
-                      <div key={`od-${i}`} style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        width: [8, 5, 4][i], height: [8, 5, 4][i],
-                        marginTop: -[4, 2.5, 2][i], marginLeft: -[4, 2.5, 2][i],
-                        borderRadius: '50%',
-                        background: `rgba(251,146,60,${[1, 0.55, 0.28][i]})`,
-                        boxShadow: i === 0 ? '0 0 10px 2px rgba(251,146,60,0.65)' : 'none',
-                        animation: 'orb-dot-orbit 1.5s linear infinite',
-                        animationDelay: `${i * -0.5}s`,
-                        '--orbit-r': '30px',
-                      } as React.CSSProperties} />
-                    ))}
-
-                    {/* 2 inner slower dots — warm white */}
-                    {([0, 1] as const).map((i) => (
-                      <div key={`id-${i}`} style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        width: [5, 3][i], height: [5, 3][i],
-                        marginTop: -[2.5, 1.5][i], marginLeft: -[2.5, 1.5][i],
-                        borderRadius: '50%',
-                        background: `rgba(255,220,160,${[0.85, 0.40][i]})`,
-                        animation: 'orb-dot-orbit 2.8s linear infinite',
-                        animationDelay: `${i * -1.4}s`,
-                        '--orbit-r': '15px',
-                      } as React.CSSProperties} />
-                    ))}
-
-                    {/* Pulsing center dot */}
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      width: 9, height: 9, borderRadius: '50%',
-                      background: 'rgba(251,146,60,0.95)',
-                      boxShadow: '0 0 14px 3px rgba(251,146,60,0.60)',
-                      animation: 'orb-dot-pulse 1.5s ease-in-out infinite',
-                    }} />
-                  </div>
-                ) : (
+                {!loading && (
                   <Mic style={{
                     width: 34, height: 34,
                     color: recording ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.28)',

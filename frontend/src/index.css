@@ -225,8 +225,10 @@
 }
 @keyframes orb-ring-spin {
   to { transform: translate(-50%,-50%) rotate(360deg); }
+}/* Scan arc — simple rotate from origin, no translate fudge */
+@keyframes scan-arc-spin {
+  to { transform: rotate(360deg); }
 }
-
 /* ── Section card ───────────────────────────────────────────────────────── */
 .section-card {
   background: var(--surface);
