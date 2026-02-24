@@ -361,12 +361,65 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {loading ? (
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    border: '2px solid rgba(255,255,255,0.4)',
-                    borderTopColor: 'transparent',
-                    animation: 'spin 0.8s linear infinite',
-                  }} />
+                  /* ── Orbiting-dot loader ── */
+                  <div style={{ position: 'relative', width: 68, height: 68 }}>
+
+                    {/* Outer dashed orbit ring */}
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      width: 64, height: 64, borderRadius: '50%',
+                      marginTop: -32, marginLeft: -32,
+                      border: '1px dashed rgba(251,146,60,0.22)',
+                      animation: 'orb-ring-spin 8s linear infinite',
+                    }} />
+
+                    {/* Inner dashed orbit ring */}
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      width: 34, height: 34, borderRadius: '50%',
+                      marginTop: -17, marginLeft: -17,
+                      border: '1px dashed rgba(251,146,60,0.15)',
+                      animation: 'orb-ring-spin 5s linear infinite reverse',
+                    }} />
+
+                    {/* 3 outer orbiting dots — orange, fading trail */}
+                    {([0, 1, 2] as const).map((i) => (
+                      <div key={`od-${i}`} style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        width: [8, 5, 4][i], height: [8, 5, 4][i],
+                        marginTop: -[4, 2.5, 2][i], marginLeft: -[4, 2.5, 2][i],
+                        borderRadius: '50%',
+                        background: `rgba(251,146,60,${[1, 0.55, 0.28][i]})`,
+                        boxShadow: i === 0 ? '0 0 10px 2px rgba(251,146,60,0.65)' : 'none',
+                        animation: 'orb-dot-orbit 1.5s linear infinite',
+                        animationDelay: `${i * -0.5}s`,
+                        '--orbit-r': '30px',
+                      } as React.CSSProperties} />
+                    ))}
+
+                    {/* 2 inner slower dots — warm white */}
+                    {([0, 1] as const).map((i) => (
+                      <div key={`id-${i}`} style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        width: [5, 3][i], height: [5, 3][i],
+                        marginTop: -[2.5, 1.5][i], marginLeft: -[2.5, 1.5][i],
+                        borderRadius: '50%',
+                        background: `rgba(255,220,160,${[0.85, 0.40][i]})`,
+                        animation: 'orb-dot-orbit 2.8s linear infinite',
+                        animationDelay: `${i * -1.4}s`,
+                        '--orbit-r': '15px',
+                      } as React.CSSProperties} />
+                    ))}
+
+                    {/* Pulsing center dot */}
+                    <div style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: 'rgba(251,146,60,0.95)',
+                      boxShadow: '0 0 14px 3px rgba(251,146,60,0.60)',
+                      animation: 'orb-dot-pulse 1.5s ease-in-out infinite',
+                    }} />
+                  </div>
                 ) : (
                   <Mic style={{
                     width: 34, height: 34,
