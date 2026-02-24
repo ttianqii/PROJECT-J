@@ -323,14 +323,15 @@ Given a Japanese word, return:
   "reading": "<full hiragana reading>",
   "romanization": "<romaji>",
   "syllables": [
-    { "kana": "<one mora>", "roman": "<romaji of that mora>", "isHigh": <bool>, "isAccentDrop": <bool> }
+    { "kana": "<one mora>", "roman": "<romaji of that mora>", "isHigh": <bool>, "isAccentDrop": <bool>, "thai": "<Thai phonetic approximation e.g. ทา เบ โม โน>" }
   ],
   "meaningTh": "<Thai meaning, natural Thai>",
   "meaningJa": "<Japanese definition, short>",
   "exampleSentence": "<natural Japanese sentence using the word>",
   "exampleTranslation": "<Thai translation of that sentence>"
 }
-Pitch accent: use standard Tokyo dialect. isAccentDrop=true means pitch drops AFTER this mora.`
+Pitch accent: use standard Tokyo dialect. isAccentDrop=true means pitch drops AFTER this mora.
+For "thai": write the Thai phonetic spelling that helps a Thai speaker pronounce that Japanese mora.`
           : `You are a Thai language and linguistics expert.
 Return ONLY a valid JSON object — no markdown, no explanation.
 Given a Thai word, return:
@@ -339,13 +340,14 @@ Given a Thai word, return:
   "reading": "<Thai script, same or phonetic variant>",
   "romanization": "<RTGS romanization>",
   "syllables": [
-    { "thai": "<Thai chars for this syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising"> }
+    { "thai": "<Thai chars for this syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising">, "katakana": "<Katakana phonetic approximation e.g. サワット>" }
   ],
   "meaningTh": "<Thai definition>",
   "meaningJa": "<Japanese meaning>",
   "exampleSentence": "<natural Thai sentence>",
   "exampleTranslation": "<Japanese translation of that sentence>"
-}`
+}
+For "katakana": write the Katakana that best approximates how a Japanese speaker should pronounce that Thai syllable.`
 
         const chat = await openai.chat.completions.create({
           model: 'gpt-4o',

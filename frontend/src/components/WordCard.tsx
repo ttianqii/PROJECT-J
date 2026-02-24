@@ -1,6 +1,7 @@
 import { Volume2, Loader2 } from 'lucide-react'
 import type { VocabEntry, PitchSyllable, ThaiSyllable, LearnerMode } from '../types'
 import { useTTS } from '../hooks/useTTS'
+import { romajiMoraToThai, rtgsToKatakana } from '../utils/phonetics'
 
 interface Props {
   entry: VocabEntry
@@ -10,16 +11,23 @@ interface Props {
 // ─── Japanese pitch‐accent display ──────────────────────────────────────────
 function PitchDisplay({ syllables }: { syllables: PitchSyllable[] }) {
   return (
-    <div className="flex items-end gap-0.5">
+    <div className="flex items-end gap-1.5 flex-wrap">
       {syllables.map((s, i) => (
         <div key={i} className="flex flex-col items-center">
+          {/* Pitch bar */}
           <div
             className={`w-full h-1 rounded-full mb-1 transition-colors ${
               s.isHigh ? 'bg-red-400' : 'bg-gray-600'
             } ${s.isAccentDrop ? 'border-r-2 border-red-400' : ''}`}
           />
+          {/* Romaji */}
           <span className="text-sm text-gray-300">{s.roman}</span>
+          {/* Kana */}
           <span className="text-xs text-gray-500">{s.kana}</span>
+          {/* Thai phonetic aid */}
+          <span className="text-xs text-amber-400/80 mt-0.5 font-medium">
+            {s.thai ?? romajiMoraToThai(s.roman)}
+          </span>
         </div>
       ))}
     </div>
@@ -61,6 +69,12 @@ function ToneDisplay({ syllables, mode }: { syllables: ThaiSyllable[]; mode: Lea
           </span>
           <span className="text-base text-gray-200">{s.roman}</span>
           <span className={`text-sm ${TONE_COLOR[s.tone]}`}>{s.thai}</span>
+          {/* Katakana phonetic aid for Japanese learners */}
+          {mode === 'ja-th' && (
+            <span className="text-xs text-blue-400/80 mt-0.5 font-medium">
+              {s.katakana ?? rtgsToKatakana(s.roman)}
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -142,6 +156,12 @@ export function WordCard({ entry, mode }: Props) {
         {isJapanese && (
           <p className="text-xs text-gray-600">
             🔴 = high pitch &nbsp;|&nbsp; ⬇ = pitch drops after this mora
+            &nbsp;|&nbsp; <span className="text-amber-400/70">สีทอง</span> = Thai phonetic
+          </p>
+        )}
+        {!isJapanese && (
+          <p className="text-xs text-gray-600">
+            <span className="text-blue-400/70">青字</span> = Katakana approximation for Japanese speakers
           </p>
         )}
       </div>

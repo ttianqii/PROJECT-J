@@ -9,6 +9,7 @@ export interface PitchSyllable {
   roman: string       // romaji
   isHigh: boolean     // true = high pitch, false = low
   isAccentDrop: boolean // true = pitch drops AFTER this mora
+  thai?: string       // Thai phonetic approximation (e.g. "ทา", "เบ")
 }
 
 // ─── Thai-specific tone information ───────────────────────────────────────────
@@ -18,6 +19,7 @@ export interface ThaiSyllable {
   thai: string        // Thai script character(s)
   roman: string       // RTGS romanization
   tone: ToneName      // tone class
+  katakana?: string   // Katakana phonetic approximation (e.g. "サワット")
 }
 
 // ─── Core vocabulary entry ─────────────────────────────────────────────────────
