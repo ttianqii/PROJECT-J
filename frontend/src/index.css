@@ -44,3 +44,13 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Slide-in transitions for preset detail view */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
