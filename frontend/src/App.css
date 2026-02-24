@@ -1,21 +1,44 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* ── Pulsing logo pip ─────────────────────────────────────────────────── */
+@keyframes pip-pulse {
+  0%, 100% { box-shadow: 0 0 10px currentColor, 0 0 24px currentColor; }
+  50%       { box-shadow: 0 0 6px  currentColor, 0 0 12px currentColor; }
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.logo-pip {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pip-pulse 3s ease-in-out infinite;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+.logo-pip--ja {
+  background: #f87171;
+  color: rgba(248,113,113,0.55);
+  box-shadow: 0 0 10px #f87171, 0 0 24px rgba(248,113,113,0.55);
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.logo-pip--th {
+  background: #fbbf24;
+  color: rgba(251,191,36,0.55);
+  box-shadow: 0 0 10px #fbbf24, 0 0 24px rgba(251,191,36,0.55);
+}
+
+/* ── Glassmorphism header ────────────────────────────────────────────── */
+.header-glass {
+  background: rgba(7,8,15,0.78);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* ── Logo wordmark ───────────────────────────────────────────────────── */
+.logo-wordmark {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #eceae4;
+  text-transform: uppercase;
 }
 
 @keyframes logo-spin {
