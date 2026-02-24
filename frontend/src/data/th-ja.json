@@ -1,0 +1,277 @@
+[
+  {
+    "id": "ja-001",
+    "category": "greetings",
+    "word": "こんにちは",
+    "reading": "こんにちは",
+    "romanization": "konnichiwa",
+    "ipa": "koɴnit͡ɕiha",
+    "syllables": [
+      { "kana": "こ", "roman": "ko", "isHigh": false, "isAccentDrop": false },
+      { "kana": "ん", "roman": "n",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "に", "roman": "ni", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ち", "roman": "chi","isHigh": true,  "isAccentDrop": false },
+      { "kana": "は", "roman": "wa", "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "สวัสดี (ตอนกลางวัน)",
+    "meaningJa": "こんにちは",
+    "exampleSentence": "こんにちは、田中さん！",
+    "exampleTranslation": "สวัสดีค่ะ คุณทานากะ!",
+    "ttsLang": "ja-JP",
+    "notes": "ใช้ช่วงกลางวัน ประมาณ 11:00 - 17:00 น."
+  },
+  {
+    "id": "ja-002",
+    "category": "greetings",
+    "word": "おはようございます",
+    "reading": "おはようございます",
+    "romanization": "ohayou gozaimasu",
+    "syllables": [
+      { "kana": "お", "roman": "o",   "isHigh": false, "isAccentDrop": false },
+      { "kana": "は", "roman": "ha",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "よ", "roman": "yo",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "う", "roman": "u",   "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ご", "roman": "go",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ざ", "roman": "za",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "い", "roman": "i",   "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ま", "roman": "ma",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "す", "roman": "su",  "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "สวัสดีตอนเช้า (สุภาพ)",
+    "meaningJa": "おはようございます",
+    "exampleSentence": "おはようございます、先生！",
+    "exampleTranslation": "สวัสดีตอนเช้าครับ คุณครู!",
+    "ttsLang": "ja-JP",
+    "notes": "เวอร์ชั่นทางการ ใช้กับผู้ใหญ่หรือคนไม่คุ้นเคย"
+  },
+  {
+    "id": "ja-003",
+    "category": "greetings",
+    "word": "ありがとう",
+    "reading": "ありがとう",
+    "romanization": "arigatou",
+    "ipa": "aɾiɡatoː",
+    "syllables": [
+      { "kana": "あ", "roman": "a",  "isHigh": false, "isAccentDrop": false },
+      { "kana": "り", "roman": "ri", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "が", "roman": "ga", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "と", "roman": "to", "isHigh": true,  "isAccentDrop": true  },
+      { "kana": "う", "roman": "u",  "isHigh": false, "isAccentDrop": false }
+    ],
+    "meaningTh": "ขอบคุณ (แบบทั่วไป)",
+    "meaningJa": "ありがとう",
+    "exampleSentence": "プレゼントをありがとう！",
+    "exampleTranslation": "ขอบคุณสำหรับของขวัญนะ!",
+    "ttsLang": "ja-JP",
+    "notes": "เพิ่ม ございます ข้างหลังเพื่อความสุภาพมากขึ้น"
+  },
+  {
+    "id": "ja-004",
+    "category": "numbers",
+    "word": "いち",
+    "reading": "いち",
+    "romanization": "ichi",
+    "syllables": [
+      { "kana": "い", "roman": "i",  "isHigh": false, "isAccentDrop": false },
+      { "kana": "ち", "roman": "chi","isHigh": true,  "isAccentDrop": true  }
+    ],
+    "meaningTh": "หนึ่ง (1)",
+    "meaningJa": "一",
+    "exampleSentence": "いちまいください。",
+    "exampleTranslation": "ขอหนึ่งแผ่นค่ะ",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-005",
+    "category": "numbers",
+    "word": "に",
+    "reading": "に",
+    "romanization": "ni",
+    "syllables": [
+      { "kana": "に", "roman": "ni", "isHigh": true, "isAccentDrop": false }
+    ],
+    "meaningTh": "สอง (2)",
+    "meaningJa": "二",
+    "exampleSentence": "にほんごをにねんまなんでいます。",
+    "exampleTranslation": "เรียนภาษาญี่ปุ่นมาสองปีแล้ว",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-006",
+    "category": "food",
+    "word": "すし",
+    "reading": "すし",
+    "romanization": "sushi",
+    "ipa": "sɯɕi",
+    "syllables": [
+      { "kana": "す", "roman": "su", "isHigh": false, "isAccentDrop": false },
+      { "kana": "し", "roman": "shi","isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "ซูชิ (อาหารญี่ปุ่น)",
+    "meaningJa": "寿司",
+    "exampleSentence": "すしがだいすきです！",
+    "exampleTranslation": "ชอบซูชิมากเลย!",
+    "ttsLang": "ja-JP",
+    "notes": "す ออกเสียงสั้น ไม่ใช่ ซุ"
+  },
+  {
+    "id": "ja-007",
+    "category": "food",
+    "word": "ラーメン",
+    "reading": "らーめん",
+    "romanization": "raamen",
+    "syllables": [
+      { "kana": "ら", "roman": "ra", "isHigh": false, "isAccentDrop": false },
+      { "kana": "ー", "roman": "a-", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "め", "roman": "me", "isHigh": true,  "isAccentDrop": true  },
+      { "kana": "ん", "roman": "n",  "isHigh": false, "isAccentDrop": false }
+    ],
+    "meaningTh": "ราเมน (บะหมี่ญี่ปุ่น)",
+    "meaningJa": "ラーメン",
+    "exampleSentence": "きょうはラーメンをたべます。",
+    "exampleTranslation": "วันนี้จะกินราเมน",
+    "ttsLang": "ja-JP",
+    "notes": "ら ต้องม้วนลิ้น ไม่ใช่เสียง ล"
+  },
+  {
+    "id": "ja-008",
+    "category": "common",
+    "word": "かわいい",
+    "reading": "かわいい",
+    "romanization": "kawaii",
+    "syllables": [
+      { "kana": "か", "roman": "ka", "isHigh": false, "isAccentDrop": false },
+      { "kana": "わ", "roman": "wa", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "い", "roman": "i",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "い", "roman": "i",  "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "น่ารัก",
+    "meaningJa": "可愛い",
+    "exampleSentence": "このねこはかわいいね！",
+    "exampleTranslation": "แมวตัวนี้น่ารักจัง!",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-009",
+    "category": "travel",
+    "word": "えき",
+    "reading": "えき",
+    "romanization": "eki",
+    "syllables": [
+      { "kana": "え", "roman": "e",  "isHigh": false, "isAccentDrop": false },
+      { "kana": "き", "roman": "ki", "isHigh": true,  "isAccentDrop": true  }
+    ],
+    "meaningTh": "สถานีรถไฟ",
+    "meaningJa": "駅",
+    "exampleSentence": "えきはどこですか？",
+    "exampleTranslation": "สถานีรถไฟอยู่ที่ไหนคะ?",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-010",
+    "category": "travel",
+    "word": "トイレ",
+    "reading": "といれ",
+    "romanization": "toire",
+    "syllables": [
+      { "kana": "ト", "roman": "to", "isHigh": false, "isAccentDrop": false },
+      { "kana": "イ", "roman": "i",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "レ", "roman": "re", "isHigh": true,  "isAccentDrop": true  }
+    ],
+    "meaningTh": "ห้องน้ำ",
+    "meaningJa": "トイレ",
+    "exampleSentence": "トイレはどこですか？",
+    "exampleTranslation": "ห้องน้ำอยู่ที่ไหนครับ?",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-011",
+    "category": "common",
+    "word": "たのしい",
+    "reading": "たのしい",
+    "romanization": "tanoshii",
+    "syllables": [
+      { "kana": "た", "roman": "ta", "isHigh": false, "isAccentDrop": false },
+      { "kana": "の", "roman": "no", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "し", "roman": "shi","isHigh": true,  "isAccentDrop": true  },
+      { "kana": "い", "roman": "i",  "isHigh": false, "isAccentDrop": false }
+    ],
+    "meaningTh": "สนุก, มีความสุข",
+    "meaningJa": "楽しい",
+    "exampleSentence": "にほんごはたのしい！",
+    "exampleTranslation": "ภาษาญี่ปุ่นสนุกมาก!",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-012",
+    "category": "greetings",
+    "word": "さようなら",
+    "reading": "さようなら",
+    "romanization": "sayounara",
+    "syllables": [
+      { "kana": "さ", "roman": "sa", "isHigh": false, "isAccentDrop": false },
+      { "kana": "よ", "roman": "yo", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "う", "roman": "u",  "isHigh": true,  "isAccentDrop": false },
+      { "kana": "な", "roman": "na", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ら", "roman": "ra", "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "ลาก่อน (เป็นทางการ)",
+    "meaningJa": "さようなら",
+    "exampleSentence": "さようなら、またね！",
+    "exampleTranslation": "ลาก่อน แล้วเจอกันใหม่!",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-013",
+    "category": "common",
+    "word": "すみません",
+    "reading": "すみません",
+    "romanization": "sumimasen",
+    "syllables": [
+      { "kana": "す", "roman": "su", "isHigh": false, "isAccentDrop": false },
+      { "kana": "み", "roman": "mi", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ま", "roman": "ma", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "せ", "roman": "se", "isHigh": true,  "isAccentDrop": false },
+      { "kana": "ん", "roman": "n",  "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "ขอโทษ / ขอโทษผมรบกวน",
+    "meaningJa": "すみません",
+    "exampleSentence": "すみません、ちょっといいですか？",
+    "exampleTranslation": "ขอโทษนะครับ มีเวลาสักครู่ไหม?",
+    "ttsLang": "ja-JP",
+    "notes": "ใช้เพื่อขอความสนใจหรือขอโทษ"
+  },
+  {
+    "id": "ja-014",
+    "category": "colors",
+    "word": "あか",
+    "reading": "あか",
+    "romanization": "aka",
+    "syllables": [
+      { "kana": "あ", "roman": "a",  "isHigh": false, "isAccentDrop": false },
+      { "kana": "か", "roman": "ka", "isHigh": true,  "isAccentDrop": true  }
+    ],
+    "meaningTh": "สีแดง",
+    "meaningJa": "赤",
+    "exampleSentence": "このバラはあかです。",
+    "exampleTranslation": "ดอกกุหลาบนี้สีแดง",
+    "ttsLang": "ja-JP"
+  },
+  {
+    "id": "ja-015",
+    "category": "colors",
+    "word": "あお",
+    "reading": "あお",
+    "romanization": "ao",
+    "syllables": [
+      { "kana": "あ", "roman": "a",  "isHigh": false, "isAccentDrop": false },
+      { "kana": "お", "roman": "o",  "isHigh": true,  "isAccentDrop": false }
+    ],
+    "meaningTh": "สีน้ำเงิน / สีฟ้า",
+    "meaningJa": "青",
+    "exampleSentence": "そらはあおいです。",
+    "exampleTranslation": "ท้องฟ้าสีฟ้า",
+    "ttsLang": "ja-JP",
+    "notes": "ในภาษาญี่ปุ่นใช้คำเดียวกันสำหรับสีฟ้าและสีเขียวบางคำ"
+  }
+]

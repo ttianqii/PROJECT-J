@@ -1,0 +1,16 @@
+{
+  "name": "project-j",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "concurrently --names \"frontend,backend\" --prefix-colors \"cyan,yellow\" \"bun run dev:frontend\" \"bun run dev:backend\"",
+    "dev:frontend": "cd frontend && bun run dev",
+    "dev:backend": "cd backend && bun run dev",
+    "build": "cd frontend && bun run build",
+    "install:all": "bun install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,256 @@
+[
+  {
+    "id": "th-001",
+    "category": "greetings",
+    "word": "สวัสดี",
+    "reading": "สวัสดี",
+    "romanization": "sa-wat-dee",
+    "ipa": "saʔwàtdiː",
+    "syllables": [
+      { "thai": "สวัส", "roman": "sa-wat", "tone": "low" },
+      { "thai": "ดี",   "roman": "dee",    "tone": "mid" }
+    ],
+    "meaningTh": "สวัสดี",
+    "meaningJa": "こんにちは / こんばんは / おはよう（汎用の挨拶）",
+    "exampleSentence": "สวัสดีครับ คุณชื่ออะไร?",
+    "exampleTranslation": "こんにちは、お名前は何ですか？",
+    "ttsLang": "th-TH",
+    "notes": "男性は ครับ、女性は ค่ะ / คะ を語末に添える"
+  },
+  {
+    "id": "th-002",
+    "category": "greetings",
+    "word": "ขอบคุณ",
+    "reading": "ขอบคุณ",
+    "romanization": "khaawp-khun",
+    "ipa": "kʰɔ̀ːp kʰun",
+    "syllables": [
+      { "thai": "ขอบ", "roman": "khaawp", "tone": "low" },
+      { "thai": "คุณ", "roman": "khun",   "tone": "mid" }
+    ],
+    "meaningTh": "ขอบคุณ",
+    "meaningJa": "ありがとう",
+    "exampleSentence": "ขอบคุณมากนะครับ",
+    "exampleTranslation": "どうもありがとうございます",
+    "ttsLang": "th-TH",
+    "notes": "มาก (mâak) = とても → ขอบคุณมาก = どうもありがとう"
+  },
+  {
+    "id": "th-003",
+    "category": "greetings",
+    "word": "ขอโทษ",
+    "reading": "ขอโทษ",
+    "romanization": "khaaw-thôot",
+    "ipa": "kʰɔ̌ː tʰôːt",
+    "syllables": [
+      { "thai": "ขอ",  "roman": "khaaw", "tone": "rising" },
+      { "thai": "โทษ", "roman": "thôot", "tone": "falling" }
+    ],
+    "meaningTh": "ขอโทษ",
+    "meaningJa": "すみません / ごめんなさい",
+    "exampleSentence": "ขอโทษนะคะ ฉันไม่เข้าใจ",
+    "exampleTranslation": "すみません、わかりませんでした",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-004",
+    "category": "numbers",
+    "word": "หนึ่ง",
+    "reading": "หนึ่ง",
+    "romanization": "nueng",
+    "ipa": "nɯ̀ŋ",
+    "syllables": [
+      { "thai": "หนึ่ง", "roman": "nueng", "tone": "low" }
+    ],
+    "meaningTh": "หนึ่ง",
+    "meaningJa": "いち（1）",
+    "exampleSentence": "ขอกาแฟหนึ่งแก้วครับ",
+    "exampleTranslation": "コーヒーを一杯ください",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-005",
+    "category": "numbers",
+    "word": "สอง",
+    "reading": "สอง",
+    "romanization": "song",
+    "ipa": "sɔ̌ŋ",
+    "syllables": [
+      { "thai": "สอง", "roman": "song", "tone": "rising" }
+    ],
+    "meaningTh": "สอง",
+    "meaningJa": "に（2）",
+    "exampleSentence": "ฉันมีพี่น้องสองคน",
+    "exampleTranslation": "兄弟が二人います",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-006",
+    "category": "food",
+    "word": "อร่อย",
+    "reading": "อร่อย",
+    "romanization": "a-ròi",
+    "ipa": "ʔàrɔ̀j",
+    "syllables": [
+      { "thai": "อ",   "roman": "a",   "tone": "low" },
+      { "thai": "ร่อย","roman": "ròi", "tone": "falling" }
+    ],
+    "meaningTh": "อร่อย",
+    "meaningJa": "おいしい",
+    "exampleSentence": "ผัดไทยอร่อยมากครับ!",
+    "exampleTranslation": "パッタイがとてもおいしいです！",
+    "ttsLang": "th-TH",
+    "notes": "声調が重要な単語 — falling toneを間違えると別の意味になる"
+  },
+  {
+    "id": "th-007",
+    "category": "food",
+    "word": "เผ็ด",
+    "reading": "เผ็ด",
+    "romanization": "phèt",
+    "ipa": "pʰèt",
+    "syllables": [
+      { "thai": "เผ็ด", "roman": "phèt", "tone": "low" }
+    ],
+    "meaningTh": "เผ็ด",
+    "meaningJa": "辛い（からい）",
+    "exampleSentence": "อาหารไทยเผ็ดมากไหม?",
+    "exampleTranslation": "タイ料理はとても辛いですか？",
+    "ttsLang": "th-TH",
+    "notes": "ph の音は破裂音で日本語の「プ」より強い"
+  },
+  {
+    "id": "th-008",
+    "category": "common",
+    "word": "สวย",
+    "reading": "สวย",
+    "romanization": "suay",
+    "ipa": "sùaj",
+    "syllables": [
+      { "thai": "สวย", "roman": "suay", "tone": "low" }
+    ],
+    "meaningTh": "สวย",
+    "meaningJa": "きれい / 美しい",
+    "exampleSentence": "ประเทศไทยสวยมากครับ",
+    "exampleTranslation": "タイはとてもきれいです",
+    "ttsLang": "th-TH",
+    "notes": "声調を間違えると ついていない（unlucky）の意味になる！"
+  },
+  {
+    "id": "th-009",
+    "category": "travel",
+    "word": "สถานี",
+    "reading": "สถานี",
+    "romanization": "sa-thaa-nee",
+    "syllables": [
+      { "thai": "ส",    "roman": "sa",   "tone": "low" },
+      { "thai": "ถา",   "roman": "thaa", "tone": "rising" },
+      { "thai": "นี",   "roman": "nee",  "tone": "mid" }
+    ],
+    "meaningTh": "สถานี (รถไฟ/BTS)",
+    "meaningJa": "駅（えき）",
+    "exampleSentence": "สถานีอยู่ที่ไหนครับ?",
+    "exampleTranslation": "駅はどこですか？",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-010",
+    "category": "travel",
+    "word": "ห้องน้ำ",
+    "reading": "ห้องน้ำ",
+    "romanization": "hɔ̂ng-náam",
+    "ipa": "hɔ̂ŋnaːm",
+    "syllables": [
+      { "thai": "ห้อง", "roman": "hɔ̂ng", "tone": "falling" },
+      { "thai": "น้ำ",  "roman": "náam",  "tone": "falling" }
+    ],
+    "meaningTh": "ห้องน้ำ",
+    "meaningJa": "トイレ / お手洗い",
+    "exampleSentence": "ห้องน้ำอยู่ที่ไหนคะ?",
+    "exampleTranslation": "トイレはどこですか？",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-011",
+    "category": "common",
+    "word": "ใช่",
+    "reading": "ใช่",
+    "romanization": "châi",
+    "ipa": "tɕʰâj",
+    "syllables": [
+      { "thai": "ใช่", "roman": "châi", "tone": "falling" }
+    ],
+    "meaningTh": "ใช่ (ตอบรับ)",
+    "meaningJa": "そうです / はい（同意）",
+    "exampleSentence": "คุณชอบอาหารไทยใช่ไหม?  — ใช่ครับ!",
+    "exampleTranslation": "タイ料理が好きですよね？ — はい、そうです！",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-012",
+    "category": "common",
+    "word": "ไม่",
+    "reading": "ไม่",
+    "romanization": "mâi",
+    "ipa": "mâj",
+    "syllables": [
+      { "thai": "ไม่", "roman": "mâi", "tone": "falling" }
+    ],
+    "meaningTh": "ไม่ (ปฏิเสธ)",
+    "meaningJa": "ない / いいえ（否定）",
+    "exampleSentence": "ฉันไม่เข้าใจ",
+    "exampleTranslation": "わかりません",
+    "ttsLang": "th-TH",
+    "notes": "ไม่ (falling) แตกต่างจาก ไหม (rising) ที่เป็นคำถาม"
+  },
+  {
+    "id": "th-013",
+    "category": "common",
+    "word": "เข้าใจ",
+    "reading": "เข้าใจ",
+    "romanization": "khâo-jai",
+    "ipa": "kʰâw tɕaj",
+    "syllables": [
+      { "thai": "เข้า", "roman": "khâo", "tone": "falling" },
+      { "thai": "ใจ",   "roman": "jai",  "tone": "mid" }
+    ],
+    "meaningTh": "เข้าใจ",
+    "meaningJa": "わかる / 理解する",
+    "exampleSentence": "คุณเข้าใจไหมครับ?",
+    "exampleTranslation": "わかりますか？",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-014",
+    "category": "colors",
+    "word": "แดง",
+    "reading": "แดง",
+    "romanization": "daeng",
+    "ipa": "dɛːŋ",
+    "syllables": [
+      { "thai": "แดง", "roman": "daeng", "tone": "mid" }
+    ],
+    "meaningTh": "สีแดง",
+    "meaningJa": "赤（あか）",
+    "exampleSentence": "เสื้อสีแดงคือของฉัน",
+    "exampleTranslation": "赤いシャツは私のです",
+    "ttsLang": "th-TH"
+  },
+  {
+    "id": "th-015",
+    "category": "colors",
+    "word": "น้ำเงิน",
+    "reading": "น้ำเงิน",
+    "romanization": "náam-ngern",
+    "ipa": "náːm ŋən",
+    "syllables": [
+      { "thai": "น้ำ",  "roman": "náam", "tone": "falling" },
+      { "thai": "เงิน", "roman": "ngern","tone": "mid" }
+    ],
+    "meaningTh": "สีน้ำเงิน",
+    "meaningJa": "青（あお）/ 紺",
+    "exampleSentence": "ท้องฟ้าสีน้ำเงิน",
+    "exampleTranslation": "空は青い色です",
+    "ttsLang": "th-TH"
+  }
+]

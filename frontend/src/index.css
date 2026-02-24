@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', 'Noto Sans Thai', 'Noto Sans JP', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #0f0f13;
+    color: #f0f0f0;
+  }
+}
+
+/* Recording pulse animation */
+@keyframes record-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.75; }
+}
+
+.recording-pulse {
+  animation: record-pulse 1s ease-in-out infinite;
+}
+
+/* Accuracy gauge animation */
+@keyframes gauge-fill {
+  from { stroke-dashoffset: 251; }
+}
