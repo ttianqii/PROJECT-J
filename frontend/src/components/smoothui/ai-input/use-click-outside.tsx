@@ -13,7 +13,7 @@ type EventType =
 export function useClickOutside<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T | null> | RefObject<T | null>[],
   handler: (event: Event) => void,
-  eventType: EventType = "mousedown"
+  eventType: EventType = "mouseup"
 ): void {
   useEffect(() => {
     function callback(event: Event) {

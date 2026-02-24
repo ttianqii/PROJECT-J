@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, RefreshCw, Search, Sparkles } from 'lucide-react'
+import { Mic, MicOff, RefreshCw, Search } from 'lucide-react'
 import { transcribeAudio, assessPronunciation, lookupWord } from '../services/api'
 import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse } from '../types'
 import { WordCard } from './WordCard'
@@ -62,6 +62,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
   const [speakMode, setSpeakMode] = useState<'voice' | 'search'>('voice')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
   const orbRef = useRef<HTMLDivElement>(null)
@@ -301,6 +303,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setAssessResult(null)
     setPracticeError(null)
     setError(null)
+    setSearchQuery('')
+    setSearchError(null)
   }
 
   /** Tap a preset chip to instantly load its WordCard */
@@ -337,8 +341,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   }
 
   /** Submit typed text in search tab — finds best match then goes to pronunciation practice */
-  const submitSearch = () => {
-    const q = searchQuery.trim()
+  const submitSearch = (overrideQuery?: string) => {
+    const q = (overrideQuery ?? searchQuery).trim()
     if (!q) return
     const match = findMatch(q, dataset)
     if (match) {
@@ -747,143 +751,283 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
       {/* ── SEARCH mode ──────────────────────────────────────────────────── */}
       {speakMode === 'search' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
 
-          {/* Search input with icon + submit */}
-          <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setMatchedEntry(null); setAssessResult(null); setPracticeError(null) }}
-                onKeyDown={e => { if (e.key === 'Enter') submitSearch() }}
-                placeholder={isJapanese ? 'พิมพ์คำ... แล้วกด Enter' : '単語を入力... Enterで検索'}
-                autoFocus
-                style={{
-                  width: '100%', padding: '12px 14px 12px 42px',
-                  borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', outline: 'none',
-                  background: 'rgba(255,255,255,0.04)',
-                  fontFamily: 'var(--font-mono)', fontSize: 13,
-                  color: 'rgba(255,255,255,0.80)', transition: 'border-color 0.2s',
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.35)' : 'rgba(251,146,60,0.35)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-              />
+          {/* ── AI Input — the single search bar ──────────────────────── */}
+          <MorphSurface
+            isJapanese={isJapanese}
+            fullWidth
+            isLoading={searchLoading}
+            placeholder={isJapanese ? 'พิมพ์คำศัพท์… กด Enter เพื่อค้นหา' : '単語を入力… Enterで検索'}
+            dockLabel={isJapanese ? 'ค้นหาคำศัพท์...' : '語彙を検索...'}
+            onChange={(val) => {
+              setSearchQuery(val)
+              setMatchedEntry(null)
+              setAssessResult(null)
+              setPracticeError(null)
+              setSearchError(null)
+            }}
+            onSubmit={async (val) => {
+              const q = val.trim()
+              if (!q) return
+              setSearchError(null)
+              // 1. Try local dataset first
+              const local = findMatch(q, dataset)
+              if (local) {
+                setMatchedEntry(local)
+                setAssessResult(null)
+                setPracticeError(null)
+                return
+              }
+              // 2. Fall back to GPT-4o lookup (same as voice mode)
+              setSearchLoading(true)
+              try {
+                const looked = await lookupWord(q, lang)
+                if (looked.ok && looked.entry) {
+                  setMatchedEntry(looked.entry)
+                  setAssessResult(null)
+                  setPracticeError(null)
+                } else {
+                  setSearchError(
+                    isJapanese
+                      ? `ไม่พบคำว่า「${q}」`
+                      : `「${q}」が見つかりませんでした`,
+                  )
+                }
+              } catch {
+                setSearchError(isJapanese ? 'ค้นหาล้มเหลว กรุณาลองใหม่' : '検索に失敗しました')
+              } finally {
+                setSearchLoading(false)
+              }
+            }}
+          />
+
+          {/* ── Search error ─────────────────────────────────────────────── */}
+          {searchError && !searchLoading && (
+            <div style={{
+              width: '100%', padding: '10px 14px', borderRadius: 10,
+              animation: 'fadeUp 0.2s ease both',
+              border: '1px solid rgba(248,113,113,0.15)',
+              background: 'rgba(248,113,113,0.05)',
+              fontFamily: 'var(--font-mono)', fontSize: 12,
+              color: 'rgba(252,165,165,0.80)',
+            }}>
+              {searchError}
             </div>
-            <button
-              onClick={submitSearch}
-              style={{
-                padding: '0 18px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
-                color: 'rgba(255,255,255,0.90)',
-                background: isJapanese
-                  ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))'
-                  : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))',
-                transition: 'opacity 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
-              {isJapanese ? 'ค้นหา' : '検索'}
-            </button>
-          </div>
-
-          {/* No match warning */}
-          {searchQuery.trim() && !matchedEntry && searchResults.length === 0 && (
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.65)', margin: 0, paddingLeft: 4 }}>
-              {isJapanese ? 'ไม่พบคำที่ตรงกัน' : '一致する単語が見つかりません'}
-            </p>
           )}
 
-          {matchedEntry ? (
+          {/* ── WordCard + practice after a match ─────────────────────── */}
+          {matchedEntry && (
             <>
               <button
                 onClick={resetAll}
-                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4 }}
+                style={{
+                  alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+                  display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.10em',
+                  color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4,
+                }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
               >
                 <RefreshCw size={10} />
                 {isJapanese ? 'กลับ / ค้นหาอีกครั้ง' : '戻る / 再検索'}
               </button>
+
               <WordCard entry={matchedEntry} mode={mode} />
-              <div style={{ width: '100%', padding: '16px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+
+              {/* Practice card */}
+              <div style={{
+                width: '100%', padding: '16px 18px', borderRadius: 14,
+                background: 'rgba(255,255,255,0.025)',
+                border: '1px solid rgba(255,255,255,0.07)',
+              }}>
+                <p style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+                  textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)',
+                  margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6,
+                }}>
                   <Mic size={10} style={{ opacity: 0.5 }} />
                   {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
                 </p>
+
                 {assessResult ? (
-                  <AccuracyFeedback result={assessResult} mode={mode} onReset={() => { setAssessResult(null); setPracticeError(null) }} />
+                  <AccuracyFeedback
+                    result={assessResult} mode={mode}
+                    onReset={() => { setAssessResult(null); setPracticeError(null) }}
+                  />
                 ) : practiceLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
-                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isJapanese ? 'rgba(248,113,113,0.60)' : 'rgba(251,146,60,0.60)'}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    <div style={{
+                      width: 18, height: 18, borderRadius: '50%',
+                      border: `2px solid ${isJapanese ? 'rgba(248,113,113,0.60)' : 'rgba(251,146,60,0.60)'}`,
+                      borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0,
+                    }} />
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Scoring...</span>
                   </div>
                 ) : practiceRecording ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '4px 0' }}>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0, color: isJapanese ? 'rgba(248,113,113,0.85)' : 'rgba(251,146,60,0.85)' }}>Listening...</p>
-                    <button onClick={stopPractice} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.35)', cursor: 'pointer', background: 'none', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 999, padding: '6px 16px', transition: 'all 0.2s' }}>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0, color: isJapanese ? 'rgba(248,113,113,0.85)' : 'rgba(251,146,60,0.85)' }}>
+                      Listening...
+                    </p>
+                    <button onClick={stopPractice} style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.10em',
+                      color: 'rgba(255,255,255,0.35)', cursor: 'pointer',
+                      background: 'none', border: '1px solid rgba(255,255,255,0.10)',
+                      borderRadius: 999, padding: '6px 16px', transition: 'all 0.2s',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+                    >
                       <MicOff size={11} />
-                      {isJapanese ? 'Stop & score' : 'Stop & score'}
+                      Stop &amp; score
                     </button>
                   </div>
                 ) : (
                   <>
-                    <button onClick={startPractice} style={{ width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'rgba(255,255,255,0.92)', background: isJapanese ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))' : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))' }}>
+                    <button onClick={startPractice} style={{
+                      width: '100%', padding: '11px 0', borderRadius: 10, border: 'none',
+                      fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+                      letterSpacing: '0.10em', textTransform: 'uppercase', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      color: 'rgba(255,255,255,0.92)', transition: 'opacity 0.2s, transform 0.15s',
+                      background: isJapanese
+                        ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))'
+                        : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))',
+                      boxShadow: isJapanese
+                        ? '0 4px 24px rgba(220,38,38,0.20)'
+                        : '0 4px 24px rgba(234,88,12,0.22)',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                      onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)' }}
+                      onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+                    >
                       <Mic size={13} />
                       {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
                     </button>
-                    {practiceError && <p style={{ margin: '10px 0 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.75)' }}>{practiceError}</p>}
+                    {practiceError && (
+                      <p style={{ margin: '10px 0 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.75)' }}>
+                        {practiceError}
+                      </p>
+                    )}
                   </>
                 )}
               </div>
             </>
-          ) : (
-            /* Suggestion list — shown while typing before pressing Enter */
-            searchQuery.trim() ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {searchResults.slice(0, 6).map(entry => (
+          )}
+
+          {/* ── Live suggestion list — shown while typing ──────────────── */}
+          {!matchedEntry && searchQuery.trim() && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {searchResults.length === 0 ? (
+                <p style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 11,
+                  color: 'rgba(252,165,165,0.60)', margin: 0, paddingLeft: 4,
+                }}>
+                  {isJapanese ? 'ไม่พบคำที่ตรงกัน' : '一致する単語が見つかりません'}
+                </p>
+              ) : (
+                searchResults.slice(0, 7).map((entry, idx) => (
                   <button
                     key={entry.id}
-                    onClick={() => { setSearchQuery(entry.word); setMatchedEntry(entry); setAssessResult(null); setPracticeError(null) }}
+                    onClick={() => {
+                      setMatchedEntry(entry)
+                      setAssessResult(null)
+                      setPracticeError(null)
+                    }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
+                      padding: '12px 16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                       background: 'rgba(255,255,255,0.03)',
                       border: isJapanese ? '1px solid rgba(248,113,113,0.12)' : '1px solid rgba(251,146,60,0.12)',
-                      transition: 'background 0.2s, border-color 0.2s',
+                      transition: 'background 0.18s, border-color 0.18s, transform 0.12s',
+                      animation: `fadeUp 0.18s ease ${idx * 0.04}s both`,
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.30)' : 'rgba(251,146,60,0.30)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.12)' : 'rgba(251,146,60,0.12)' }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.32)' : 'rgba(251,146,60,0.32)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.12)' : 'rgba(251,146,60,0.12)'
+                    }}
+                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.985)' }}
+                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c' }}>{entry.word}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>{entry.romanization}</span>
+                      <span style={{ fontSize: 19, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c', lineHeight: 1.2 }}>
+                        {entry.word}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>
+                        {entry.romanization}
+                      </span>
                     </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.20)' }}>{entry.reading}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.22)' }}>
+                        {entry.reading}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.14)' }}>
+                        {entry.category}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* ── Empty state: vocab chip browser ───────────────────────── */}
+          {!matchedEntry && !searchQuery.trim() && (
+            <div style={{ width: '100%', animation: 'fadeUp 0.35s ease both' }}>
+              <p style={{
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+                textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)', margin: '0 0 10px',
+              }}>
+                {isJapanese ? 'หรือเลือกจากคลัง' : 'または語彙から選ぶ'}
+              </p>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {dataset.map((entry) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => {
+                      setMatchedEntry(entry)
+                      setAssessResult(null)
+                      setPracticeError(null)
+                    }}
+                    style={{
+                      flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      padding: '9px 14px', borderRadius: 12, cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: isJapanese
+                        ? '1px solid rgba(248,113,113,0.18)'
+                        : '1px solid rgba(251,146,60,0.18)',
+                      transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.40)' : 'rgba(251,146,60,0.40)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.18)' : 'rgba(251,146,60,0.18)'
+                    }}
+                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
+                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+                  >
+                    <span style={{ fontSize: 15, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c' }}>
+                      {entry.word}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>
+                      {entry.romanization}
+                    </span>
                   </button>
                 ))}
               </div>
-            ) : (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.18)', textAlign: 'center', padding: '24px 0 8px', margin: 0 }}>
-                {isJapanese ? 'พิมพ์คำแล้วกด Enter หรือเลือกจากรายการ' : '単語を入力してEnterを押すか、リストから選択'}
-              </p>
-            )
+            </div>
           )}
 
-          {/* ── AI divider + MorphSurface ───────────────────────────────── */}
-          <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)' }}>
-              <Sparkles size={9} />
-              {isJapanese ? 'ถาม AI' : 'Ask AI'}
-            </span>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <MorphSurface isJapanese={isJapanese} />
-          </div>
         </div>
       )}
     </div>
