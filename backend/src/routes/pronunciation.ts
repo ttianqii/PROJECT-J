@@ -305,3 +305,80 @@ export const pronunciationRoutes = new Elysia({ prefix: '/api' })
       }),
     },
   )
+
+  // ─── /api/lookup ── look up any word via GPT-4o and return VocabEntry-shaped data ────
+  .post(
+    '/lookup',
+    async ({ body }) => {
+      const { word, lang } = body as { word: string; lang: 'ja' | 'th' }
+      try {
+        const openai = getOpenAI()
+
+        const systemPrompt = lang === 'ja'
+          ? `You are a Japanese language and linguistics expert.
+Return ONLY a valid JSON object — no markdown, no explanation.
+Given a Japanese word, return:
+{
+  "word": "<word in kanji/kana>",
+  "reading": "<full hiragana reading>",
+  "romanization": "<romaji>",
+  "syllables": [
+    { "kana": "<one mora>", "roman": "<romaji of that mora>", "isHigh": <bool>, "isAccentDrop": <bool> }
+  ],
+  "meaningTh": "<Thai meaning, natural Thai>",
+  "meaningJa": "<Japanese definition, short>",
+  "exampleSentence": "<natural Japanese sentence using the word>",
+  "exampleTranslation": "<Thai translation of that sentence>"
+}
+Pitch accent: use standard Tokyo dialect. isAccentDrop=true means pitch drops AFTER this mora.`
+          : `You are a Thai language and linguistics expert.
+Return ONLY a valid JSON object — no markdown, no explanation.
+Given a Thai word, return:
+{
+  "word": "<Thai script>",
+  "reading": "<Thai script, same or phonetic variant>",
+  "romanization": "<RTGS romanization>",
+  "syllables": [
+    { "thai": "<Thai chars for this syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising"> }
+  ],
+  "meaningTh": "<Thai definition>",
+  "meaningJa": "<Japanese meaning>",
+  "exampleSentence": "<natural Thai sentence>",
+  "exampleTranslation": "<Japanese translation of that sentence>"
+}`
+
+        const chat = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: word },
+          ],
+        })
+
+        const raw = chat.choices[0]?.message?.content?.trim() ?? '{}'
+        // Strip ```json fences if model adds them
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+        const data = JSON.parse(cleaned)
+
+        return {
+          ok: true,
+          entry: {
+            id: `ai-${Date.now()}`,
+            category: 'AI Lookup',
+            ttsLang: lang === 'ja' ? 'ja-JP' : 'th-TH',
+            ...data,
+          },
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        return { ok: false, entry: null, error: msg }
+      }
+    },
+    {
+      body: t.Object({
+        word: t.String(),
+        lang: t.Union([t.Literal('ja'), t.Literal('th')]),
+      }),
+    },
+  )

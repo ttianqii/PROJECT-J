@@ -1,4 +1,4 @@
-import type { AssessResponse, TranscribeResponse } from '../types'
+import type { AssessResponse, TranscribeResponse, VocabEntry } from '../types'
 
 const BASE = '/api'
 
@@ -37,6 +37,26 @@ export async function assessPronunciation(
   }
 
   return res.json() as Promise<AssessResponse>
+}
+
+/**
+ * Look up any word via GPT-4o — returns a full VocabEntry-shaped object
+ * for words not in the local preset dataset.
+ */
+export async function lookupWord(
+  word: string,
+  lang: 'ja' | 'th',
+): Promise<{ ok: boolean; entry: VocabEntry | null; error?: string }> {
+  const res = await fetch(`${BASE}/lookup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word, lang }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Server error ${res.status}: ${text}`)
+  }
+  return res.json()
 }
 
 export async function checkHealth(): Promise<boolean> {

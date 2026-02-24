@@ -25,7 +25,22 @@
   animation: record-pulse 1s ease-in-out infinite;
 }
 
+/* Audio equalizer bar animation — oscillates scaleY from a low point up to full height */
+@keyframes audiobar {
+  0%, 100% { transform: scaleY(0.15); }
+  50% { transform: scaleY(1); }
+}
+
 /* Accuracy gauge animation */
 @keyframes gauge-fill {
   from { stroke-dashoffset: 251; }
+}
+
+/* Hide scrollbar for chip strips */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
