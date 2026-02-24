@@ -54,10 +54,11 @@ export function PronunciationRecorder({ entry, mode, onResult, onError }: Props)
     <div className="space-y-4">
       {/* Prompt text */}
       <div className="text-center space-y-1">
-        <p className="text-white/80 font-medium">
+        <p className="text-white/80 font-medium flex items-center justify-center gap-1.5">
+          <Mic size={14} className="shrink-0" />
           {isJapanese
-            ? 'กด 🎤 แล้วพูด — กดอีกครั้งเพื่อหยุด'
-            : '🎤 ボタンを押して話し、もう一度押して止める'}
+            ? 'กดแล้วพูด — กดอีกครั้งเพื่อหยุด'
+            : 'ボタンを押して話し、もう一度押して止める'}
         </p>
         <p className="text-gray-500 text-sm">
           {isJapanese

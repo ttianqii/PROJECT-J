@@ -1,10 +1,13 @@
+import { Hand, Hash, Utensils, MessageCircle, Plane, Palette, Star, Target, Languages } from 'lucide-react'
 import type { LearnerMode, VocabEntry } from '../types'
+
+type LucideIcon = React.ComponentType<{ size?: number; className?: string }>
 
 interface Preset {
   category: string
-  icon: string
-  labelTh: string   // label in Thai (for Thai learners in th-ja)
-  labelJa: string   // label in Japanese (for Japanese learners in ja-th)
+  Icon: LucideIcon
+  labelTh: string
+  labelJa: string
   descTh: string
   descJa: string
 }
@@ -12,7 +15,7 @@ interface Preset {
 const PRESETS: Preset[] = [
   {
     category: 'greetings',
-    icon: '👋',
+    Icon: Hand,
     labelTh: 'การทักทาย',
     labelJa: '挨拶',
     descTh: 'คำทักทายพื้นฐานที่ใช้ทุกวัน',
@@ -20,7 +23,7 @@ const PRESETS: Preset[] = [
   },
   {
     category: 'numbers',
-    icon: '🔢',
+    Icon: Hash,
     labelTh: 'ตัวเลข',
     labelJa: '数字',
     descTh: 'ตัวเลข 1-10 และการนับ',
@@ -28,7 +31,7 @@ const PRESETS: Preset[] = [
   },
   {
     category: 'food',
-    icon: '🍜',
+    Icon: Utensils,
     labelTh: 'อาหาร',
     labelJa: '食べ物',
     descTh: 'คำศัพท์เกี่ยวกับอาหารและเครื่องดื่ม',
@@ -36,7 +39,7 @@ const PRESETS: Preset[] = [
   },
   {
     category: 'common',
-    icon: '💬',
+    Icon: MessageCircle,
     labelTh: 'คำทั่วไป',
     labelJa: '日常会話',
     descTh: 'คำที่ใช้บ่อยในชีวิตประจำวัน',
@@ -44,7 +47,7 @@ const PRESETS: Preset[] = [
   },
   {
     category: 'travel',
-    icon: '✈️',
+    Icon: Plane,
     labelTh: 'การเดินทาง',
     labelJa: '旅行',
     descTh: 'คำศัพท์สำหรับนักเดินทาง',
@@ -52,7 +55,7 @@ const PRESETS: Preset[] = [
   },
   {
     category: 'colors',
-    icon: '🎨',
+    Icon: Palette,
     labelTh: 'สี',
     labelJa: '色',
     descTh: 'ชื่อสีต่าง ๆ',
@@ -87,8 +90,9 @@ export function PresetScreen({ mode, dataset, onSelectPreset }: Props) {
     <div className="flex flex-col gap-4 px-4 pt-4 pb-2">
       {/* Header */}
       <div className="space-y-1 pt-1">
-        <h2 className={`text-xl font-bold ${accentColor}`}>
-          {isJapanese ? '⭐ ชุดคำศัพท์' : '⭐ 単語セット'}
+        <h2 className={`text-xl font-bold ${accentColor} flex items-center gap-2`}>
+          <Star size={18} />
+          {isJapanese ? 'ชุดคำศัพท์' : '単語セット'}
         </h2>
         <p className="text-gray-400 text-sm">
           {isJapanese
@@ -99,7 +103,7 @@ export function PresetScreen({ mode, dataset, onSelectPreset }: Props) {
 
       {/* Current language indicator */}
       <div className={`rounded-2xl border px-4 py-3 ${accentBg} ${accentBorder} flex items-center gap-3`}>
-        <span className="text-2xl">{isJapanese ? '🇯🇵' : '🇹🇭'}</span>
+        <Languages size={22} className={accentColor} />
         <div>
           <p className={`text-sm font-semibold ${accentColor}`}>
             {isJapanese ? 'กำลังเรียนภาษาญี่ปุ่น' : 'タイ語を学習中'}
@@ -122,7 +126,7 @@ export function PresetScreen({ mode, dataset, onSelectPreset }: Props) {
               className={`flex flex-col items-start gap-2 rounded-2xl border bg-white/5 border-white/10
                 hover:${accentBg} hover:${accentBorder} active:scale-95 transition-all duration-150 p-4 text-left`}
             >
-              <span className="text-3xl">{preset.icon}</span>
+              <preset.Icon size={28} className={accentColor} />
               <div className="w-full">
                 <p className="text-white font-semibold text-sm leading-tight">
                   {isJapanese ? preset.labelTh : preset.labelJa}
@@ -142,11 +146,12 @@ export function PresetScreen({ mode, dataset, onSelectPreset }: Props) {
       {/* Practice all button */}
       <button
         onClick={() => onSelectPreset(dataset.map((e) => e.id))}
-        className={`w-full py-4 rounded-2xl font-bold text-white transition-all duration-200 active:scale-95 ${accentBtn}`}
+        className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-white transition-all duration-200 active:scale-95 ${accentBtn}`}
       >
+        <Target size={18} />
         {isJapanese
-          ? `🎯 ฝึกทั้งหมด ${dataset.length} คำ`
-          : `🎯 全${dataset.length}語を練習する`}
+          ? `ฝึกทั้งหมด ${dataset.length} คำ`
+          : `全${dataset.length}語を練習する`}
       </button>
     </div>
   )

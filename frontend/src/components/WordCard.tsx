@@ -1,4 +1,4 @@
-import { Volume2, Loader2 } from 'lucide-react'
+import { Volume2, Loader2, Lightbulb } from 'lucide-react'
 import type { VocabEntry, PitchSyllable, ThaiSyllable, LearnerMode } from '../types'
 import { useTTS } from '../hooks/useTTS'
 import { romajiMoraToThai, rtgsToKatakana } from '../utils/phonetics'
@@ -109,25 +109,24 @@ export function WordCard({ entry, mode }: Props) {
             )}
           </div>
 
-          {/* TTS Button */}
+          {/* TTS Button — icon only */}
           <button
             onClick={() => speak(entry.word, entry.ttsLang)}
             disabled={isSpeaking}
-            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold transition-all ${
+            className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
               isSpeaking
-                ? 'bg-white/10 text-white/50 cursor-not-allowed'
+                ? 'bg-white/10 text-white/40 cursor-not-allowed'
                 : isJapanese
-                  ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200'
-                  : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 hover:text-amber-200'
+                  ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 hover:scale-110 active:scale-95'
+                  : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 hover:text-amber-200 hover:scale-110 active:scale-95'
             }`}
             title="Listen to pronunciation"
           >
             {isSpeaking ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
             ) : (
-              <Volume2 size={20} />
+              <Volume2 size={18} />
             )}
-            <span className="text-sm">{isSpeaking ? '...' : '🔊 Listen'}</span>
           </button>
         </div>
 
@@ -154,14 +153,16 @@ export function WordCard({ entry, mode }: Props) {
           )}
         </div>
         {isJapanese && (
-          <p className="text-xs text-gray-600">
-            🔴 = high pitch &nbsp;|&nbsp; ⬇ = pitch drops after this mora
-            &nbsp;|&nbsp; <span className="text-amber-400/70">สีทอง</span> = Thai phonetic
+          <p className="text-xs text-gray-600 flex items-center gap-3 flex-wrap">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> high pitch</span>
+            <span>↓ pitch drops after this mora</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400/70 inline-block" /> Thai phonetic</span>
           </p>
         )}
         {!isJapanese && (
-          <p className="text-xs text-gray-600">
-            <span className="text-blue-400/70">青字</span> = Katakana approximation for Japanese speakers
+          <p className="text-xs text-gray-600 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-400/70 inline-block" />
+            <span>Katakana approximation for Japanese speakers</span>
           </p>
         )}
       </div>
@@ -193,8 +194,9 @@ export function WordCard({ entry, mode }: Props) {
       {/* Notes */}
       {entry.notes && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4">
-          <p className="text-yellow-300 text-sm">
-            💡 {entry.notes}
+          <p className="text-yellow-300 text-sm flex items-start gap-2">
+            <Lightbulb size={14} className="shrink-0 mt-0.5" />
+            {entry.notes}
           </p>
         </div>
       )}

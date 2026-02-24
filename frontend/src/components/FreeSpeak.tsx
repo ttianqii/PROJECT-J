@@ -463,8 +463,9 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
           {/* Practice section */}
           <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder} space-y-3`}>
-            <p className={`text-sm font-bold ${accentColor}`}>
-              🎤 {isJapanese ? 'ฝึกออกเสียงคำนี้' : 'この単語を練習する'}
+            <p className={`text-sm font-bold ${accentColor} flex items-center gap-2`}>
+              <Mic size={14} />
+              {isJapanese ? 'ฝึกออกเสียงคำนี้' : 'この単語を練習する'}
             </p>
 
             {assessResult ? (

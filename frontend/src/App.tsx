@@ -6,7 +6,7 @@ import { PresetScreen } from './components/PresetScreen'
 import { WordCard } from './components/WordCard'
 import { PronunciationRecorder } from './components/PronunciationRecorder'
 import { AccuracyFeedback } from './components/AccuracyFeedback'
-import { Volume2 } from 'lucide-react'
+import { Volume2, Mic, AlertTriangle, XCircle } from 'lucide-react'
 import FreeSpeak from './components/FreeSpeak'
 import thJaData from './data/th-ja.json'
 import jaThData from './data/ja-th.json'
@@ -155,11 +155,12 @@ export default function App() {
       {/* ── Inline pronunciation practice ── */}
       <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
         <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">
-          🎤 {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
+          <Mic size={12} className="inline mr-1" />
+          {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
         </p>
         <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
           <Volume2 size={12} className={accentColor} />
-          <span>{isJapanese ? 'กด 🔊 ฟังก่อน แล้วกด 🎤 พูด' : '🔊でお手本を聞いてから 🎤 で話してください'}</span>
+          <span>{isJapanese ? 'กดฟังก่อน แล้วกดพูด' : 'お手本を聞いてから話してください'}</span>
         </div>
         {assessResult ? (
           <AccuracyFeedback
@@ -177,7 +178,9 @@ export default function App() {
         )}
         {assessError && !assessResult && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mt-2">
-            <p className="text-red-400 text-sm font-semibold">❌ {assessError}</p>
+            <p className="text-red-400 text-sm font-semibold flex items-center gap-2">
+              <XCircle size={14} /> {assessError}
+            </p>
           </div>
         )}
       </div>
@@ -221,16 +224,15 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🗾</span>
             <span className={`text-base font-bold ${accentColor}`}>PROJECT-J</span>
           </div>
           {backendOk === false && (
-            <span className="text-[10px] bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-2 py-0.5 rounded-full font-semibold">
-              ⚠️ offline
+            <span className="text-[10px] bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              <AlertTriangle size={10} /> offline
             </span>
           )}
           <div className={`text-xs font-semibold px-3 py-1 rounded-full border ${accentBg} ${accentBorder} ${accentColor}`}>
-            {isJapanese ? '🇹🇭→🇯🇵' : '🇯🇵→🇹🇭'}
+            {isJapanese ? 'TH → JP' : 'JP → TH'}
           </div>
         </div>
       </header>
