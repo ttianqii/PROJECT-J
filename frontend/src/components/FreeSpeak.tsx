@@ -60,7 +60,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const silenceRafRef = useRef<number | null>(null)
   const [hasSound, setHasSound] = useState(false)
 
-  const [speakMode, setSpeakMode] = useState<'voice' | 'search' | 'ai'>('voice')
+  const [speakMode, setSpeakMode] = useState<'voice' | 'search'>('voice')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
@@ -329,11 +329,23 @@ export default function FreeSpeak({ mode, dataset }: Props) {
       )
     : dataset
 
-  const switchTab = (tab: 'voice' | 'search' | 'ai') => {
+  const switchTab = (tab: 'voice' | 'search') => {
     if (tab !== 'voice' && recording) stopDetect()
     setSpeakMode(tab)
     if (tab !== 'search') setSearchQuery('')
     if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null) }
+  }
+
+  /** Submit typed text in search tab — finds best match then goes to pronunciation practice */
+  const submitSearch = () => {
+    const q = searchQuery.trim()
+    if (!q) return
+    const match = findMatch(q, dataset)
+    if (match) {
+      setMatchedEntry(match)
+      setAssessResult(null)
+      setPracticeError(null)
+    }
   }
 
   return (
@@ -351,8 +363,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
       }}>
         {([
           { id: 'voice' as const, icon: <Mic size={13} />, label: 'Voice' },
-          { id: 'search' as const, icon: <Search size={13} />, label: 'Search' },
-          { id: 'ai' as const, icon: <Sparkles size={13} />, label: 'AI' },
+          { id: 'search' as const, icon: <Search size={13} />, label: 'Search + AI' },
         ]).map(tab => (
           <button
             key={tab.id}
@@ -738,26 +749,52 @@ export default function FreeSpeak({ mode, dataset }: Props) {
       {speakMode === 'search' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
 
-          {/* Search input with icon */}
-          <div style={{ position: 'relative' }}>
-            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder={isJapanese ? 'ค้นหาคำ... (hiragana, romaji)' : '語を検索... (kana, romaji)'}
-              autoFocus
+          {/* Search input with icon + submit */}
+          <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setMatchedEntry(null); setAssessResult(null); setPracticeError(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') submitSearch() }}
+                placeholder={isJapanese ? 'พิมพ์คำ... แล้วกด Enter' : '単語を入力... Enterで検索'}
+                autoFocus
+                style={{
+                  width: '100%', padding: '12px 14px 12px 42px',
+                  borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', outline: 'none',
+                  background: 'rgba(255,255,255,0.04)',
+                  fontFamily: 'var(--font-mono)', fontSize: 13,
+                  color: 'rgba(255,255,255,0.80)', transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.35)' : 'rgba(251,146,60,0.35)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+              />
+            </div>
+            <button
+              onClick={submitSearch}
               style={{
-                width: '100%', padding: '12px 14px 12px 42px',
-                borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', outline: 'none',
-                background: 'rgba(255,255,255,0.04)',
-                fontFamily: 'var(--font-mono)', fontSize: 13,
-                color: 'rgba(255,255,255,0.80)', transition: 'border-color 0.2s',
+                padding: '0 18px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+                color: 'rgba(255,255,255,0.90)',
+                background: isJapanese
+                  ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))'
+                  : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))',
+                transition: 'opacity 0.2s',
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.35)' : 'rgba(251,146,60,0.35)')}
-              onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-            />
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              {isJapanese ? 'ค้นหา' : '検索'}
+            </button>
           </div>
+
+          {/* No match warning */}
+          {searchQuery.trim() && !matchedEntry && searchResults.length === 0 && (
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.65)', margin: 0, paddingLeft: 4 }}>
+              {isJapanese ? 'ไม่พบคำที่ตรงกัน' : '一致する単語が見つかりません'}
+            </p>
+          )}
 
           {matchedEntry ? (
             <>
@@ -803,16 +840,13 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               </div>
             </>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {searchResults.length === 0 ? (
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.22)', textAlign: 'center', padding: '24px 0' }}>
-                  {isJapanese ? 'ไม่พบคำที่ค้นหา' : '該当なし'}
-                </p>
-              ) : (
-                searchResults.map(entry => (
+            /* Suggestion list — shown while typing before pressing Enter */
+            searchQuery.trim() ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {searchResults.slice(0, 6).map(entry => (
                   <button
                     key={entry.id}
-                    onClick={() => pickPreset(entry)}
+                    onClick={() => { setSearchQuery(entry.word); setMatchedEntry(entry); setAssessResult(null); setPracticeError(null) }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
@@ -829,23 +863,27 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                     </div>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.20)' }}>{entry.reading}</span>
                   </button>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.18)', textAlign: 'center', padding: '24px 0 8px', margin: 0 }}>
+                {isJapanese ? 'พิมพ์คำแล้วกด Enter หรือเลือกจากรายการ' : '単語を入力してEnterを押すか、リストから選択'}
+              </p>
+            )
           )}
-        </div>
-      )}
 
-      {/* ── AI mode ─────────────────────────────────────────────────────── */}
-      {speakMode === 'ai' && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-          width: '100%', paddingTop: 16, animation: 'fadeUp 0.2s ease both',
-        }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)', margin: 0 }}>
-            {isJapanese ? 'ถาม AI เกี่ยวกับคำ' : 'AI について質問する'}
-          </p>
-          <MorphSurface isJapanese={isJapanese} />
+          {/* ── AI divider + MorphSurface ───────────────────────────────── */}
+          <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)' }}>
+              <Sparkles size={9} />
+              {isJapanese ? 'ถาม AI' : 'Ask AI'}
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <MorphSurface isJapanese={isJapanese} />
+          </div>
         </div>
       )}
     </div>
