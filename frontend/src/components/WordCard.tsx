@@ -91,50 +91,49 @@ export function WordCard({ entry, mode }: Props) {
   const badgeColor = isJapanese ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-6">
-      {/* Category badge */}
-      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${badgeColor}`}>
-        {entry.category}
-      </span>
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-5">
+      {/* Category badge + TTS button on same row */}
+      <div className="flex items-center justify-between">
+        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${badgeColor}`}>
+          {entry.category}
+        </span>
+        <button
+          onClick={() => speak(entry.word, entry.ttsLang)}
+          disabled={isSpeaking}
+          className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+            isSpeaking
+              ? 'bg-white/10 text-white/40 cursor-not-allowed'
+              : isJapanese
+                ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 hover:scale-110 active:scale-95'
+                : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 hover:text-amber-200 hover:scale-110 active:scale-95'
+          }`}
+          title="Listen to pronunciation"
+        >
+          {isSpeaking ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+        </button>
+      </div>
 
-      {/* Main word */}
-      <div className="space-y-2">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className={`text-6xl font-bold leading-tight ${accentColor}`}>
-              {entry.word}
-            </div>
-            {entry.word !== entry.reading && (
-              <div className="text-2xl text-gray-400 mt-1">{entry.reading}</div>
-            )}
-          </div>
-
-          {/* TTS Button — icon only */}
-          <button
-            onClick={() => speak(entry.word, entry.ttsLang)}
-            disabled={isSpeaking}
-            className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-              isSpeaking
-                ? 'bg-white/10 text-white/40 cursor-not-allowed'
-                : isJapanese
-                  ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 hover:scale-110 active:scale-95'
-                  : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 hover:text-amber-200 hover:scale-110 active:scale-95'
-            }`}
-            title="Listen to pronunciation"
-          >
-            {isSpeaking ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Volume2 size={18} />
-            )}
-          </button>
+      {/* Main word — full width, font scales with word length to stay one line */}
+      <div className="space-y-1">
+        <div
+          className={`font-bold leading-none whitespace-nowrap ${accentColor}`}
+          style={{
+            fontSize: `clamp(1.4rem, ${(22 / Math.max(entry.word.length, 1)).toFixed(2)}rem, 3.5rem)`
+          }}
+        >
+          {entry.word}
         </div>
-
-        {/* Romanization */}
-        <div className="text-xl text-gray-300 font-mono tracking-wider">
+        {entry.word !== entry.reading && (
+          <div
+            className="text-gray-400 whitespace-nowrap"
+            style={{ fontSize: 'clamp(1rem, 5vw, 1.5rem)' }}
+          >
+            {entry.reading}
+          </div>
+        )}
+        <div className="text-base text-gray-300 font-mono tracking-wider pt-1">
           /{entry.romanization}/
         </div>
-
         {entry.ipa && (
           <div className="text-sm text-gray-500 font-mono">[{entry.ipa}]</div>
         )}
