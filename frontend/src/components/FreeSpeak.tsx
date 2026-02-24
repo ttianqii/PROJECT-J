@@ -57,7 +57,6 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const [hasSound, setHasSound] = useState(false)
 
   const accentCls = isJapanese ? 'bg-red-500' : 'bg-amber-500'
-  const accentRingCls = isJapanese ? 'ring-red-400' : 'ring-amber-400'
   const accentColor = isJapanese ? 'text-red-400' : 'text-amber-400'
   const accentBg = isJapanese ? 'bg-red-500/10' : 'bg-amber-500/10'
   const accentBorder = isJapanese ? 'border-red-500/30' : 'border-amber-500/30'
@@ -240,91 +239,132 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         <p className="text-sm text-gray-500 mt-1 leading-snug">{hintText}</p>
       </div>
 
-      {/* ── Mic control: 3 distinct states ───────────────────────────────── */}
-      {loading ? (
-        /* ── State 3: Processing ── */
-        <div className={`flex flex-col items-center gap-3 py-6 rounded-2xl border ${accentBg} ${accentBorder}`}>
-          {/* Spinning ring */}
-          <div className={`w-16 h-16 rounded-full border-4 border-t-transparent animate-spin
-            ${isJapanese ? 'border-red-500' : 'border-amber-500'}`}
-          />
-          <p className={`text-sm font-semibold ${accentColor}`}>
-            {isJapanese ? 'กำลังประมวลผล...' : '処理中...'}
-          </p>
-          <p className="text-xs text-gray-500">
-            {isJapanese ? 'Whisper กำลังแปลงเสียง' : 'Whisperが音声を認識しています'}
-          </p>
-        </div>
-      ) : recording ? (
-        /* ── State 2: Recording ── */
-        <div className={`flex flex-col items-center gap-4 py-6 rounded-2xl border ${accentBg} ${accentBorder}`}>
-          {/* Pulsing mic rings */}
-          <div className="relative flex items-center justify-center">
-            <span className={`absolute w-20 h-20 rounded-full opacity-30 animate-ping
-              ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-            />
-            <span className={`absolute w-16 h-16 rounded-full opacity-20 animate-ping [animation-delay:150ms]
-              ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}
-            />
-            <div className={`relative z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg
+      {/* ── Mic control card ─────────────────────────────────────────────── */}
+      <div className={`relative overflow-hidden rounded-3xl border transition-all duration-300
+        ${recording
+          ? `${accentBg} ${accentBorder} shadow-lg ${isJapanese ? 'shadow-red-500/10' : 'shadow-amber-500/10'}`
+          : loading
+            ? 'bg-white/[0.03] border-white/10'
+            : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.05]'
+        }`}
+      >
+        {loading ? (
+          /* ── Processing ── */
+          <div className="flex flex-col items-center gap-4 py-10 px-6">
+            {/* Ripple rings */}
+            <div className="relative flex items-center justify-center w-20 h-20">
+              <span className={`absolute inset-0 rounded-full opacity-20 animate-ping
+                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
+              <span className={`absolute inset-2 rounded-full opacity-15 animate-ping [animation-delay:200ms]
+                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
+              <div className={`relative w-14 h-14 rounded-full flex items-center justify-center
+                ${isJapanese ? 'bg-red-500/20' : 'bg-amber-500/20'}`}>
+                <div className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin
+                  ${isJapanese ? 'border-red-400' : 'border-amber-400'}`} />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className={`text-sm font-semibold ${accentColor}`}>
+                {isJapanese ? 'กำลังประมวลผล...' : '処理中...'}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {isJapanese ? 'Whisper กำลังแปลงเสียง' : 'Whisperが音声を認識しています'}
+              </p>
+            </div>
+          </div>
+
+        ) : recording ? (
+          /* ── Recording / voice search ── */
+          <div className="flex flex-col items-center gap-6 py-10 px-6">
+            {/* Mic icon */}
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl
               ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`}>
               <Mic className="w-7 h-7 text-white" />
             </div>
+
+            {/* Equalizer waveform — 11 bars, lit vs dim based on hasSound */}
+            <div className="flex items-center gap-[3px] h-10">
+              {[
+                { h: 20, dur: 0.5 }, { h: 45, dur: 0.7 }, { h: 70, dur: 0.4 },
+                { h: 90, dur: 0.6 }, { h: 100, dur: 0.5 }, { h: 80, dur: 0.45 },
+                { h: 100, dur: 0.55 }, { h: 90, dur: 0.65 }, { h: 70, dur: 0.4 },
+                { h: 45, dur: 0.6 }, { h: 20, dur: 0.5 },
+              ].map(({ h, dur }, i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: hasSound ? `${h}%` : '18%',
+                    animationDuration: `${dur}s`,
+                    animationDelay: `${i * 0.05}s`,
+                    transition: 'height 0.15s ease, background-color 0.2s ease',
+                  }}
+                  className={[
+                    'w-[3px] rounded-full',
+                    hasSound
+                      ? `animate-pulse ${isJapanese ? 'bg-red-400' : 'bg-amber-400'}`
+                      : 'bg-gray-700',
+                  ].join(' ')}
+                />
+              ))}
+            </div>
+
+            <p className={`text-xs font-medium tracking-wide ${hasSound ? accentColor : 'text-gray-500'}`}>
+              {hasSound
+                ? isJapanese ? 'รับเสียงอยู่...' : '音声を受信中...'
+                : isJapanese ? 'รอรับเสียง...' : '音声を待っています...'}
+            </p>
+
+            {/* Stop button */}
+            <button
+              onClick={stopDetect}
+              className="flex items-center gap-2 px-7 py-2.5 rounded-full
+                bg-white/8 border border-white/15 hover:bg-white/15
+                text-gray-300 hover:text-white text-xs font-semibold
+                transition-all active:scale-95"
+            >
+              <MicOff size={14} />
+              {isJapanese ? 'หยุด' : '停止'}
+            </button>
           </div>
-          <p className={`text-sm font-semibold ${accentColor}`}>
-            {isJapanese ? 'กำลังฟัง...' : '聴いています...'}
-          </p>
-          {/* Sound indicator bars */}
-          <div className="flex items-end gap-1 h-6">
-            {[0, 80, 160, 240, 320].map((delay, i) => (
-              <div
-                key={i}
-                style={{ animationDelay: `${delay}ms` }}
-                className={[
-                  'w-1.5 rounded-full transition-all duration-150',
-                  hasSound
-                    ? `animate-bounce ${isJapanese ? 'bg-red-400' : 'bg-amber-400'}`
-                    : 'bg-gray-700',
-                  // vary heights for a waveform look
-                  i === 0 || i === 4 ? 'h-2' : i === 1 || i === 3 ? 'h-4' : 'h-6',
-                ].join(' ')}
-              />
-            ))}
+
+        ) : (
+          /* ── Idle ── */
+          <div className="flex flex-col items-center gap-4 py-10 px-6">
+            <button
+              onClick={startDetect}
+              disabled={practiceRecording}
+              className={[
+                'group relative w-20 h-20 rounded-full flex items-center justify-center shadow-2xl',
+                'transition-all duration-300 active:scale-90',
+                practiceRecording
+                  ? 'bg-gray-700 cursor-not-allowed'
+                  : isJapanese
+                    ? 'bg-red-500 hover:bg-red-400 shadow-red-500/30'
+                    : 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/30',
+              ].join(' ')}
+            >
+              {/* Glow ring on hover */}
+              <span className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30
+                transition-opacity duration-300 scale-125
+                ${isJapanese ? 'bg-red-500' : 'bg-amber-500'}`} />
+              <Mic className="w-9 h-9 text-white relative z-10" />
+            </button>
+
+            {/* Flat idle bars */}
+            <div className="flex items-center gap-[3px] h-5">
+              {Array.from({ length: 11 }, (_, i) => (
+                <div key={i} className="w-[3px] h-[3px] rounded-full bg-gray-700" />
+              ))}
+            </div>
+
+            <p className="text-xs text-gray-500">
+              {transcribeResult
+                ? isJapanese ? 'แตะเพื่อพูดใหม่' : 'タップして再度話す'
+                : isJapanese ? 'แตะแล้วพูดภาษาญี่ปุ่น' : 'タップしてタイ語を話してください'}
+            </p>
           </div>
-          {/* Stop button */}
-          <button
-            onClick={stopDetect}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/10 border border-white/20
-              hover:bg-white/20 text-white text-sm font-semibold transition-all active:scale-95"
-          >
-            <MicOff size={16} />
-            {isJapanese ? 'หยุดและประมวลผล' : '停止して認識'}
-          </button>
-        </div>
-      ) : (
-        /* ── State 1: Idle / has-result ── */
-        <div className="flex flex-col items-center gap-3">
-          <button
-            onClick={startDetect}
-            disabled={practiceRecording}
-            className={[
-              'w-20 h-20 rounded-full flex items-center justify-center shadow-lg ring-4',
-              'transition-all duration-200 active:scale-95',
-              practiceRecording
-                ? 'bg-gray-700 ring-gray-600 cursor-not-allowed'
-                : `${accentCls} ${accentRingCls} hover:brightness-110`,
-            ].join(' ')}
-          >
-            <Mic className="w-9 h-9 text-white" />
-          </button>
-          <p className="text-xs text-gray-400">
-            {transcribeResult
-              ? isJapanese ? 'กดเพื่อพูดใหม่' : 'もう一度話すには押してください'
-              : isJapanese ? 'กดแล้วพูดคำภาษาญี่ปุ่น' : '押してタイ語を話してください'
-            }
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Transcription result banner ───────────────────────────────────── */}
       {transcribeResult && transcribeResult.ok && transcribeResult.transcribed && !loading && (
