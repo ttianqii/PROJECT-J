@@ -180,13 +180,24 @@ export default function App() {
               )}
 
               {assessError && !assessResult && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-4">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-5 py-4 space-y-1">
                   <p className="text-red-400 text-sm font-semibold">❌ {assessError}</p>
-                  <p className="text-red-400/70 text-xs mt-1">
-                    {isJapanese
-                      ? 'โปรดตรวจสอบการเชื่อมต่อและ API Key ของคุณ'
-                      : 'バックエンドの接続とAPIキーを確認してください'}
-                  </p>
+                  {assessError.toLowerCase().includes('api') ||
+                  assessError.toLowerCase().includes('key') ||
+                  assessError.toLowerCase().includes('401') ||
+                  assessError.toLowerCase().includes('openai') ? (
+                    <p className="text-red-400/70 text-xs">
+                      {isJapanese
+                        ? 'โปรดตรวจสอบ OPENAI_API_KEY ใน backend/.env'
+                        : 'backend/.env の OPENAI_API_KEY を確認してください'}
+                    </p>
+                  ) : (
+                    <p className="text-red-400/70 text-xs">
+                      {isJapanese
+                        ? 'ลองบันทึกเสียงใหม่อีกครั้ง หรือตรวจสอบการเชื่อมต่อ'
+                        : 'もう一度録音するか、接続を確認してください'}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

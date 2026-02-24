@@ -58,15 +58,32 @@ export interface AssessRequest {
   lang: 'ja' | 'th'
 }
 
+export interface WordTiming {
+  word: string
+  start: number
+  end: number
+}
+
 export interface AssessResponse {
   ok: boolean
-  transcribed: string         // what Whisper heard
-  accuracy: number            // 0–100
-  charDiff: CharDiffToken[]   // character-level comparison
+  transcribed: string           // what Whisper heard
+  wordTimings: WordTiming[]     // per-word timestamps from Whisper
+
+  // Native-script character match (expectedWord vs transcribed)
+  accuracy: number              // 0–100
+  charDiff: CharDiffToken[]
+
+  // Simple rule-based feedback (fallback)
   feedback: {
-    th: string                // feedback in Thai
-    ja: string                // feedback in Japanese
+    th: string
+    ja: string
   }
+
+  // GPT-4o phonetic analysis (primary score & coaching)
+  aiScore: number               // 0–100 phonetic score
+  aiFeedback: string            // coaching tip in target language
+  mispronounced: string[]       // syllables / sounds that were off
+
   error?: string
 }
 

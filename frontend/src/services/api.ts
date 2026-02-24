@@ -13,8 +13,14 @@ export async function assessPronunciation(
   lang: 'ja' | 'th',
 ): Promise<AssessResponse> {
   const form = new FormData()
-  // Whisper requires a filename with a valid audio extension
-  const ext = audio.type.includes('ogg') ? 'ogg' : 'webm'
+  // Whisper needs a filename with a recognised extension to detect the format.
+  // Chrome produces 'video/webm' (audio-only content in a webm container) —
+  // that's fine, .webm is a valid extension Whisper accepts.
+  let ext = 'webm'
+  if (audio.type.includes('ogg')) ext = 'ogg'
+  else if (audio.type.includes('mp4') || audio.type.includes('m4a')) ext = 'mp4'
+  else if (audio.type.includes('wav')) ext = 'wav'
+  // 'video/webm' also maps to 'webm' — handled by the default above
   form.append('audio', audio, `recording.${ext}`)
   form.append('expectedWord', expectedWord)
   form.append('expectedRoman', expectedRoman)
