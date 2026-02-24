@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, RefreshCw } from 'lucide-react'
+import { Mic, MicOff, RefreshCw, Search, Sparkles } from 'lucide-react'
 import { transcribeAudio, assessPronunciation, lookupWord } from '../services/api'
 import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse } from '../types'
 import { WordCard } from './WordCard'
 import { AccuracyFeedback } from './AccuracyFeedback'
 import SiriOrb from './SiriOrb'
+import { MorphSurface } from '@/components/smoothui/ai-input/index'
 
 interface Props {
   mode: LearnerMode
@@ -58,6 +59,9 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const silenceRafRef = useRef<number | null>(null)
   const [hasSound, setHasSound] = useState(false)
+
+  const [speakMode, setSpeakMode] = useState<'voice' | 'search' | 'ai'>('voice')
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
   const orbRef = useRef<HTMLDivElement>(null)
@@ -317,12 +321,64 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     ? transcribeResult.transcribed  // Whisper final result
     : interimText                   // live Web Speech API interim
 
+  const searchResults = searchQuery.trim()
+    ? dataset.filter(e =>
+        e.word.includes(searchQuery) ||
+        e.reading.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.romanization.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : dataset
+
+  const switchTab = (tab: 'voice' | 'search' | 'ai') => {
+    if (tab !== 'voice' && recording) stopDetect()
+    setSpeakMode(tab)
+    if (tab !== 'search') setSearchQuery('')
+    if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null) }
+  }
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 20, paddingTop: 36, paddingBottom: 36, paddingLeft: 20, paddingRight: 20,
-      maxWidth: 400, margin: '0 auto',
+      gap: 0, paddingTop: 24, paddingBottom: 36, paddingLeft: 20, paddingRight: 20,
+      maxWidth: 400, margin: '0 auto', width: '100%',
     }}>
+
+      {/* ── Tab bar ─────────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', gap: 4, padding: 4, borderRadius: 14,
+        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: 24, width: 'fit-content', alignSelf: 'center',
+      }}>
+        {([
+          { id: 'voice' as const, icon: <Mic size={13} />, label: 'Voice' },
+          { id: 'search' as const, icon: <Search size={13} />, label: 'Search' },
+          { id: 'ai' as const, icon: <Sparkles size={13} />, label: 'AI' },
+        ]).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => switchTab(tab.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 10, border: 'none',
+              cursor: 'pointer', transition: 'all 0.2s ease',
+              fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em',
+              background: speakMode === tab.id
+                ? (isJapanese ? 'rgba(248,113,113,0.15)' : 'rgba(251,146,60,0.15)')
+                : 'transparent',
+              color: speakMode === tab.id
+                ? (isJapanese ? '#f87171' : '#fb923c')
+                : 'rgba(255,255,255,0.32)',
+            }}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── VOICE mode ──────────────────────────────────────────────────── */}
+      {speakMode === 'voice' && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
 
       {/* ── Orb hero ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -672,6 +728,124 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+        </div>
+      )}
+
+      {/* ── SEARCH mode ──────────────────────────────────────────────────── */}
+      {speakMode === 'search' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
+
+          {/* Search input with icon */}
+          <div style={{ position: 'relative' }}>
+            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={isJapanese ? 'ค้นหาคำ... (hiragana, romaji)' : '語を検索... (kana, romaji)'}
+              autoFocus
+              style={{
+                width: '100%', padding: '12px 14px 12px 42px',
+                borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', outline: 'none',
+                background: 'rgba(255,255,255,0.04)',
+                fontFamily: 'var(--font-mono)', fontSize: 13,
+                color: 'rgba(255,255,255,0.80)', transition: 'border-color 0.2s',
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.35)' : 'rgba(251,146,60,0.35)')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+            />
+          </div>
+
+          {matchedEntry ? (
+            <>
+              <button
+                onClick={resetAll}
+                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
+              >
+                <RefreshCw size={10} />
+                {isJapanese ? 'กลับ / ค้นหาอีกครั้ง' : '戻る / 再検索'}
+              </button>
+              <WordCard entry={matchedEntry} mode={mode} />
+              <div style={{ width: '100%', padding: '16px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Mic size={10} style={{ opacity: 0.5 }} />
+                  {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
+                </p>
+                {assessResult ? (
+                  <AccuracyFeedback result={assessResult} mode={mode} onReset={() => { setAssessResult(null); setPracticeError(null) }} />
+                ) : practiceLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isJapanese ? 'rgba(248,113,113,0.60)' : 'rgba(251,146,60,0.60)'}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Scoring...</span>
+                  </div>
+                ) : practiceRecording ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '4px 0' }}>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0, color: isJapanese ? 'rgba(248,113,113,0.85)' : 'rgba(251,146,60,0.85)' }}>Listening...</p>
+                    <button onClick={stopPractice} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.35)', cursor: 'pointer', background: 'none', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 999, padding: '6px 16px', transition: 'all 0.2s' }}>
+                      <MicOff size={11} />
+                      {isJapanese ? 'Stop & score' : 'Stop & score'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={startPractice} style={{ width: '100%', padding: '11px 0', borderRadius: 10, border: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'rgba(255,255,255,0.92)', background: isJapanese ? 'linear-gradient(135deg, rgba(220,38,38,0.75), rgba(185,28,28,0.85))' : 'linear-gradient(135deg, rgba(234,88,12,0.75), rgba(251,146,60,0.85))' }}>
+                      <Mic size={13} />
+                      {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
+                    </button>
+                    {practiceError && <p style={{ margin: '10px 0 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.75)' }}>{practiceError}</p>}
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {searchResults.length === 0 ? (
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.22)', textAlign: 'center', padding: '24px 0' }}>
+                  {isJapanese ? 'ไม่พบคำที่ค้นหา' : '該当なし'}
+                </p>
+              ) : (
+                searchResults.map(entry => (
+                  <button
+                    key={entry.id}
+                    onClick={() => pickPreset(entry)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: isJapanese ? '1px solid rgba(248,113,113,0.12)' : '1px solid rgba(251,146,60,0.12)',
+                      transition: 'background 0.2s, border-color 0.2s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.30)' : 'rgba(251,146,60,0.30)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.12)' : 'rgba(251,146,60,0.12)' }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c' }}>{entry.word}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>{entry.romanization}</span>
+                    </div>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.20)' }}>{entry.reading}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── AI mode ─────────────────────────────────────────────────────── */}
+      {speakMode === 'ai' && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+          width: '100%', paddingTop: 16, animation: 'fadeUp 0.2s ease both',
+        }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)', margin: 0 }}>
+            {isJapanese ? 'ถาม AI เกี่ยวกับคำ' : 'AI について質問する'}
+          </p>
+          <MorphSurface isJapanese={isJapanese} />
         </div>
       )}
     </div>

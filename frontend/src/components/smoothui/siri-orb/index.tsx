@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
 const SIZE_THRESHOLD_SMALL = 50;
