@@ -384,3 +384,72 @@ For "katakana": write the Katakana that best approximates how a Japanese speaker
       }),
     },
   )
+
+  // ─── /api/tokenize ── break a sentence into glossed tokens ──────────────
+  .post(
+    '/tokenize',
+    async ({ body }) => {
+      const { sentence, lang } = body as { sentence: string; lang: 'ja' | 'th' }
+      try {
+        const openai = getOpenAI()
+
+        const systemPrompt = lang === 'ja'
+          ? `You are a Japanese linguistics expert. Tokenize the given sentence into meaningful segments.
+Return ONLY a valid JSON array — no markdown, no explanation — with this shape:
+[
+  {
+    "word": "<token in native script>",
+    "reading": "<hiragana>",
+    "romanization": "<romaji>",
+    "isParticle": <true if grammatical particle/auxiliary, false if content word>,
+    "meaningTh": "<Thai meaning of this token>",
+    "meaningJa": "<brief Japanese gloss>",
+    "syllables": [
+      { "kana": "<mora>", "roman": "<romaji>", "isHigh": <bool>, "isAccentDrop": <bool>, "thai": "<Thai phonetic e.g. ทา โค>" }
+    ]
+  }
+]
+Use standard Tokyo pitch accent. Include particles (は, が, を, に…) as separate tokens with isParticle:true.
+For "thai": write the Thai phonetic spelling that helps a Thai speaker pronounce that mora.`
+          : `You are a Thai linguistics expert. Tokenize the given sentence into meaningful word segments.
+Return ONLY a valid JSON array — no markdown, no explanation — with this shape:
+[
+  {
+    "word": "<token in Thai script>",
+    "reading": "<Thai script>",
+    "romanization": "<RTGS romanization>",
+    "isParticle": <true if particle/filler, false if content word>,
+    "meaningTh": "<Thai definition>",
+    "meaningJa": "<Japanese meaning>",
+    "syllables": [
+      { "thai": "<Thai chars for syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising">, "katakana": "<Katakana approximation>" }
+    ]
+  }
+]`
+
+        const chat = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          temperature: 0.1,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: sentence },
+          ],
+        })
+
+        const raw = chat.choices[0]?.message?.content?.trim() ?? '[]'
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+        const tokens = JSON.parse(cleaned)
+
+        return { ok: true, tokens }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        return { ok: false, tokens: [], error: msg }
+      }
+    },
+    {
+      body: t.Object({
+        sentence: t.String(),
+        lang: t.Union([t.Literal('ja'), t.Literal('th')]),
+      }),
+    },
+  )

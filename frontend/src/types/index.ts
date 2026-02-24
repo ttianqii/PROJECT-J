@@ -101,3 +101,13 @@ export interface TranscribeResponse {
   wordTimings: WordTiming[]
   error?: string
 }
+// ─── Sentence tokenization ────────────────────────────────────────────────────
+export interface SentenceToken {
+  word: string
+  reading: string
+  romanization: string
+  isParticle: boolean
+  meaningTh: string
+  meaningJa: string
+  syllables: PitchSyllable[] | ThaiSyllable[]
+}

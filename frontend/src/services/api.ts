@@ -96,3 +96,22 @@ export async function transcribeAudio(
 
   return res.json() as Promise<TranscribeResponse>
 }
+
+/**
+ * Tokenize a sentence into glossed tokens (word-by-word with pitch/tone data).
+ */
+export async function tokenizeSentence(
+  sentence: string,
+  lang: 'ja' | 'th',
+): Promise<{ ok: boolean; tokens: import('../types').SentenceToken[]; error?: string }> {
+  const res = await fetch(`${BASE}/tokenize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sentence, lang }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Server error ${res.status}: ${text}`)
+  }
+  return res.json()
+}

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Mic, MicOff, RefreshCw, Search } from 'lucide-react'
-import { transcribeAudio, assessPronunciation, lookupWord } from '../services/api'
-import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse } from '../types'
+import { transcribeAudio, assessPronunciation, lookupWord, tokenizeSentence } from '../services/api'
+import type { LearnerMode, VocabEntry, TranscribeResponse, AssessResponse, SentenceToken } from '../types'
 import { WordCard } from './WordCard'
 import { AccuracyFeedback } from './AccuracyFeedback'
+import { SentenceBreakdown } from './SentenceBreakdown'
 import SiriOrb from './SiriOrb'
 import { MorphSurface } from '@/components/smoothui/ai-input/index'
 
@@ -64,6 +65,9 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+
+  const [sentenceTokens, setSentenceTokens] = useState<SentenceToken[] | null>(null)
+  const [sentenceTxt, setSentenceTxt] = useState('')
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
   const orbRef = useRef<HTMLDivElement>(null)
@@ -128,13 +132,25 @@ export default function FreeSpeak({ mode, dataset }: Props) {
           const res = await transcribeAudio(blob, lang)
           setTranscribeResult(res)
           if (res.ok && res.transcribed) {
-            const preset = findMatch(res.transcribed, dataset)
-            if (preset) {
-              setMatchedEntry(preset)
+            const q = res.transcribed
+            // Detect sentence FIRST — skip local dataset for multi-word/long phrases
+            const isSentence = q.includes(' ') || (lang === 'ja' && q.length >= 5) || (lang === 'th' && q.length >= 8)
+            if (isSentence) {
+              const tok = await tokenizeSentence(q, lang)
+              if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
             } else {
-              // Not in presets — ask GPT-4o for full word data
-              const looked = await lookupWord(res.transcribed, lang)
-              if (looked.ok && looked.entry) setMatchedEntry(looked.entry)
+              const preset = findMatch(q, dataset)
+              if (preset) {
+                setMatchedEntry(preset)
+              } else {
+                const looked = await lookupWord(q, lang)
+                if (looked.ok && looked.entry) {
+                  setMatchedEntry(looked.entry)
+                } else {
+                  const tok = await tokenizeSentence(q, lang)
+                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                }
+              }
             }
           } else {
             setError(res.error ?? 'Transcription failed')
@@ -305,6 +321,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setError(null)
     setSearchQuery('')
     setSearchError(null)
+    setSentenceTokens(null)
+    setSentenceTxt('')
   }
 
   /** Tap a preset chip to instantly load its WordCard */
@@ -337,7 +355,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     if (tab !== 'voice' && recording) stopDetect()
     setSpeakMode(tab)
     if (tab !== 'search') setSearchQuery('')
-    if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null) }
+    if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null); setSentenceTokens(null); setSentenceTxt('') }
   }
 
   /** Submit typed text in search tab — finds best match then goes to pronunciation practice */
@@ -699,6 +717,25 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               </>
             )}
           </div>
+        </>  
+      )}
+
+      {/* ── Sentence breakdown (voice mode) ───────────────────────────── */}
+      {sentenceTokens && !loading && (
+        <>
+          <button onClick={resetAll} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0,
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.10em',
+            color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4,
+          }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
+          >
+            <RefreshCw size={10} />
+            {isJapanese ? 'กลับ / พูดคำอื่น' : '戻る / 別の語を話す'}
+          </button>
+          <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} />
         </>
       )}
 
@@ -771,28 +808,35 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               const q = val.trim()
               if (!q) return
               setSearchError(null)
-              // 1. Try local dataset first
-              const local = findMatch(q, dataset)
-              if (local) {
-                setMatchedEntry(local)
-                setAssessResult(null)
-                setPracticeError(null)
-                return
-              }
-              // 2. Fall back to GPT-4o lookup (same as voice mode)
+              setSentenceTokens(null)
+              setSentenceTxt('')
+              // 1. Detect sentence FIRST — skip local dataset for multi-word/long phrases
+              const isSentence = q.includes(' ') || (lang === 'ja' && q.length >= 5) || (lang === 'th' && q.length >= 8)
               setSearchLoading(true)
               try {
-                const looked = await lookupWord(q, lang)
-                if (looked.ok && looked.entry) {
-                  setMatchedEntry(looked.entry)
-                  setAssessResult(null)
-                  setPracticeError(null)
+                if (isSentence) {
+                  const tok = await tokenizeSentence(q, lang)
+                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                  else setSearchError(isJapanese ? `ไม่พบข้อมูลสำหรับ 「${q}」` : `「${q}」が見つかりませんでした`)
                 } else {
-                  setSearchError(
-                    isJapanese
-                      ? `ไม่พบคำว่า「${q}」`
-                      : `「${q}」が見つかりませんでした`,
-                  )
+                  // 2. Try local dataset for short single words
+                  const local = findMatch(q, dataset)
+                  if (local) {
+                    setMatchedEntry(local)
+                    setAssessResult(null)
+                    setPracticeError(null)
+                  } else {
+                    const looked = await lookupWord(q, lang)
+                    if (looked.ok && looked.entry) {
+                      setMatchedEntry(looked.entry)
+                      setAssessResult(null)
+                      setPracticeError(null)
+                    } else {
+                      const tok = await tokenizeSentence(q, lang)
+                      if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                      else setSearchError(isJapanese ? `ไม่พบคำว่า 「${q}」` : `「${q}」が見つかりませんでした`)
+                    }
+                  }
                 }
               } catch {
                 setSearchError(isJapanese ? 'ค้นหาล้มเหลว กรุณาลองใหม่' : '検索に失敗しました')
@@ -817,7 +861,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
           )}
 
           {/* ── WordCard + practice after a match ─────────────────────── */}
-          {matchedEntry && (
+          {matchedEntry && !sentenceTokens && (
             <>
               <button
                 onClick={resetAll}
@@ -918,8 +962,24 @@ export default function FreeSpeak({ mode, dataset }: Props) {
             </>
           )}
 
+          {/* ── Sentence breakdown (search mode) ──────────────────── */}
+          {sentenceTokens && !searchLoading && (
+            <>
+              <button
+                onClick={resetAll}
+                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.18)', transition: 'color 0.2s', marginBottom: -4 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
+              >
+                <RefreshCw size={10} />
+                {isJapanese ? 'กลับ / ค้นหาอีกครั้ง' : '戻る / 再検索'}
+              </button>
+              <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} />
+            </>
+          )}
+
           {/* ── Live suggestion list — shown while typing ──────────────── */}
-          {!matchedEntry && searchQuery.trim() && (
+          {!matchedEntry && !sentenceTokens && searchQuery.trim() && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {searchResults.length === 0 ? (
                 <p style={{
@@ -979,7 +1039,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
           )}
 
           {/* ── Empty state: vocab chip browser ───────────────────────── */}
-          {!matchedEntry && !searchQuery.trim() && (
+          {!matchedEntry && !sentenceTokens && !searchQuery.trim() && (
             <div style={{ width: '100%', animation: 'fadeUp 0.35s ease both' }}>
               <p style={{
                 fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
