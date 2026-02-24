@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { X, Mic, MicOff } from 'lucide-react'
+import { Volume2, Mic, MicOff, Loader2, X } from 'lucide-react'
 import type { SentenceToken, PitchSyllable, ThaiSyllable, LearnerMode, AssessResponse } from '../types'
 import { romajiMoraToThai, rtgsToKatakana } from '../utils/phonetics'
-import { WordCard } from './WordCard'
 import { AccuracyFeedback } from './AccuracyFeedback'
 import { assessPronunciation } from '../services/api'
+import { useTTS } from '../hooks/useTTS'
 
 interface Props {
   sentence: string
@@ -12,21 +12,16 @@ interface Props {
   mode: LearnerMode
 }
 
-// ── Mini pitch display (same style as WordCard but compact) ──────────────────
-function MiniPitch({ syllables }: { syllables: PitchSyllable[] }) {
+// ── Same PitchDisplay as WordCard ─────────────────────────────────────────────
+function PitchDisplay({ syllables }: { syllables: PitchSyllable[] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, flexWrap: 'wrap' }}>
+    <div className="flex items-end gap-1.5 flex-wrap">
       {syllables.map((s, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{
-            width: '100%', height: 3, borderRadius: 999, marginBottom: 3,
-            minWidth: 12,
-            background: s.isHigh ? '#f87171' : '#4b5563',
-            borderRight: s.isAccentDrop ? '2px solid #f87171' : 'none',
-          }} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#d1d5db' }}>{s.roman}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#6b7280', marginTop: 1 }}>{s.kana}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(251,191,36,0.75)', marginTop: 1 }}>
+        <div key={i} className="flex flex-col items-center">
+          <div className={`w-full h-1 rounded-full mb-1 transition-colors ${s.isHigh ? 'bg-red-400' : 'bg-gray-600'} ${s.isAccentDrop ? 'border-r-2 border-red-400' : ''}`} />
+          <span className="text-sm text-gray-300">{s.roman}</span>
+          <span className="text-xs text-gray-500">{s.kana}</span>
+          <span className="text-xs text-amber-400/80 mt-0.5 font-medium">
             {s.thai ?? romajiMoraToThai(s.roman)}
           </span>
         </div>
@@ -35,22 +30,30 @@ function MiniPitch({ syllables }: { syllables: PitchSyllable[] }) {
   )
 }
 
-const TONE_COLOR: Record<string, string> = {
-  mid: '#60a5fa', low: '#a78bfa', falling: '#f87171', high: '#4ade80', rising: '#facc15',
+// ── Same ToneDisplay as WordCard ──────────────────────────────────────────────
+const TONE_COLOR_CLS: Record<string, string> = {
+  mid: 'text-blue-400', low: 'text-purple-400', falling: 'text-red-400',
+  high: 'text-green-400', rising: 'text-yellow-400',
+}
+const TONE_LABEL: Record<string, string> = {
+  mid: 'กลาง', low: 'เอก', falling: 'โท', high: 'ตรี', rising: 'จัตวา',
+}
+const TONE_LABEL_JA: Record<string, string> = {
+  mid: '中', low: '低', falling: '下降', high: '高', rising: '上昇',
 }
 
-function MiniTone({ syllables, mode }: { syllables: ThaiSyllable[]; mode: LearnerMode }) {
+function ToneDisplay({ syllables, mode }: { syllables: ThaiSyllable[]; mode: LearnerMode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+    <div className="flex items-end gap-3 flex-wrap">
       {syllables.map((s, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, color: TONE_COLOR[s.tone] }}>
-            {s.tone[0]?.toUpperCase()}
+        <div key={i} className="flex flex-col items-center gap-0.5">
+          <span className={`text-xs font-semibold ${TONE_COLOR_CLS[s.tone]}`}>
+            {mode === 'ja-th' ? TONE_LABEL_JA[s.tone] : TONE_LABEL[s.tone]}
           </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#e5e7eb' }}>{s.roman}</span>
-          <span style={{ fontSize: 11, color: TONE_COLOR[s.tone] }}>{s.thai}</span>
+          <span className="text-base text-gray-200">{s.roman}</span>
+          <span className={`text-sm ${TONE_COLOR_CLS[s.tone]}`}>{s.thai}</span>
           {mode === 'ja-th' && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(96,165,250,0.75)', marginTop: 1 }}>
+            <span className="text-xs text-blue-400/80 mt-0.5 font-medium">
               {s.katakana ?? rtgsToKatakana(s.roman)}
             </span>
           )}
@@ -60,328 +63,200 @@ function MiniTone({ syllables, mode }: { syllables: ThaiSyllable[]; mode: Learne
   )
 }
 
-// ── Token chip ────────────────────────────────────────────────────────────────
-interface ChipProps {
-  token: SentenceToken
-  mode: LearnerMode
-  isActive: boolean
-  onClick: () => void
-}
-
-function TokenChip({ token, mode, isActive, onClick }: ChipProps) {
-  const [hovered, setHovered] = useState(false)
-  const isJapanese = mode === 'th-ja'
-  const accent = isJapanese ? 'rgba(248,113,113,' : 'rgba(251,146,60,'
-
-  const particleStyle = token.isParticle
-
-  return (
-    <div style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
-
-      {/* Hover tooltip — meaning */}
-      {hovered && !isActive && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-          zIndex: 50, whiteSpace: 'nowrap',
-          background: 'rgba(15,15,18,0.96)', border: '1px solid rgba(255,255,255,0.10)',
-          backdropFilter: 'blur(12px)', borderRadius: 8,
-          padding: '6px 10px',
-          fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 500,
-          color: 'rgba(255,255,255,0.80)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-          animation: 'fadeUp 0.12s ease both',
-          pointerEvents: 'none',
-        }}>
-          {isJapanese ? token.meaningTh : token.meaningJa}
-          {/* small arrow */}
-          <div style={{
-            position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-            width: 0, height: 0,
-            borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-            borderTop: '5px solid rgba(255,255,255,0.10)',
-          }} />
-        </div>
-      )}
-
-      <button
-        onClick={onClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-          padding: particleStyle ? '8px 10px' : '10px 14px',
-          borderRadius: 12, border: 'none', cursor: 'pointer',
-          transition: 'background 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s',
-          background: isActive
-            ? `${accent}0.12)`
-            : hovered
-              ? 'rgba(255,255,255,0.06)'
-              : particleStyle
-                ? 'rgba(255,255,255,0.02)'
-                : 'rgba(255,255,255,0.04)',
-          outline: isActive ? `1.5px solid ${accent}0.45)` : '1.5px solid transparent',
-          transform: hovered && !isActive ? 'translateY(-2px)' : 'translateY(0)',
-          boxShadow: isActive ? `0 0 18px ${accent}0.15)` : 'none',
-          opacity: particleStyle && !isActive ? 0.55 : 1,
-        }}
-      >
-        {/* Word */}
-        <span style={{
-          fontSize: particleStyle ? 13 : 18, fontWeight: particleStyle ? 500 : 700,
-          color: isActive ? (isJapanese ? '#f87171' : '#fb923c') : (hovered ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.75)'),
-          transition: 'color 0.15s', lineHeight: 1.1,
-        }}>
-          {token.word}
-        </span>
-
-        {/* Mini pitch/tone chart — hidden for particles */}
-        {!particleStyle && token.syllables?.length > 0 && (
-          <div style={{ opacity: 0.85 }}>
-            {isJapanese
-              ? <MiniPitch syllables={token.syllables as PitchSyllable[]} />
-              : <MiniTone syllables={token.syllables as ThaiSyllable[]} mode={mode} />
-            }
-          </div>
-        )}
-
-        {/* Romanization under particle */}
-        {particleStyle && (
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.08em' }}>
-            {token.romanization}
-          </span>
-        )}
-      </button>
-    </div>
-  )
-}
-
-// ── Detail panel (full WordCard-style + pronunciation practice) ───────────────
-function TokenDetail({
-  token, mode, onClose,
-}: { token: SentenceToken; mode: LearnerMode; onClose: () => void }) {
+// ── Reusable practice recorder ───────────────────────────────────────────────
+function PracticeSection({ word, romanization, mode }: { word: string; romanization: string; mode: LearnerMode }) {
   const isJapanese = mode === 'th-ja'
   const lang = isJapanese ? 'ja' : 'th'
-  const accentColor = isJapanese ? '#f87171' : '#fb923c'
-  const accent = isJapanese ? 'rgba(248,113,113,' : 'rgba(251,146,60,'
-
-  const [practiceRecording, setPracticeRecording] = useState(false)
-  const [practiceLoading, setPracticeLoading] = useState(false)
-  const [assessResult, setAssessResult] = useState<AssessResponse | null>(null)
-  const [practiceError, setPracticeError] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<AssessResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const mediaRef = { current: null as MediaRecorder | null }
   const chunksRef = { current: [] as Blob[] }
 
-  const startPractice = async () => {
-    setPracticeError(null)
-    setAssessResult(null)
+  const start = async () => {
+    setError(null); setResult(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus' : ''
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : ''
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       chunksRef.current = []
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' })
-        setPracticeLoading(true)
-        try {
-          const res = await assessPronunciation(blob, token.word, token.romanization, lang)
-          setAssessResult(res)
-        } catch (e) {
-          setPracticeError(e instanceof Error ? e.message : 'Error')
-        } finally {
-          setPracticeLoading(false)
-        }
+        setLoading(true)
+        try { setResult(await assessPronunciation(blob, word, romanization, lang)) }
+        catch (err) { setError(err instanceof Error ? err.message : 'Error') }
+        finally { setLoading(false) }
       }
-      mr.start()
-      mediaRef.current = mr
-      setPracticeRecording(true)
-    } catch {
-      setPracticeError(isJapanese ? 'ไม่สามารถเข้าถึงไมค์ได้' : 'マイクにアクセスできません')
-    }
+      mr.start(); mediaRef.current = mr; setRecording(true)
+    } catch { setError(isJapanese ? 'ไม่สามารถเข้าถึงไมค์ได้' : 'マイクにアクセスできません') }
   }
+  const stop = () => { mediaRef.current?.stop(); mediaRef.current = null; setRecording(false) }
 
-  const stopPractice = () => {
-    mediaRef.current?.stop()
-    mediaRef.current = null
-    setPracticeRecording(false)
-  }
-
+  if (result) return <AccuracyFeedback result={result} mode={mode} onReset={() => { setResult(null); setError(null) }} />
+  if (loading) return <div className="flex items-center gap-3"><Loader2 size={16} className="animate-spin text-gray-400" /><span className="text-xs text-gray-500 font-mono">Scoring...</span></div>
+  if (recording) return (
+    <div className="flex flex-col items-center gap-3">
+      <p className={`text-xs font-mono uppercase tracking-widest ${isJapanese ? 'text-red-400/80' : 'text-amber-400/80'}`}>Listening...</p>
+      <button onClick={stop} className="flex items-center gap-2 text-xs font-mono text-white/40 border border-white/10 rounded-full px-4 py-1.5 hover:border-white/25 hover:text-white/70 transition-all">
+        <MicOff size={10} /> Stop &amp; score
+      </button>
+    </div>
+  )
   return (
-    <div style={{
-      width: '100%', borderRadius: 16, animation: 'fadeUp 0.22s ease both',
-      background: 'rgba(255,255,255,0.025)', border: `1px solid ${accent}0.18)`,
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: accentColor, lineHeight: 1 }}>{token.word}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-            /{token.romanization}/
-          </span>
+    <>
+      <button onClick={start} className={`w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-white/90 flex items-center justify-center gap-2 transition-all ${isJapanese ? 'bg-gradient-to-r from-red-700/70 to-red-600/80 hover:from-red-600/80 hover:to-red-500/90' : 'bg-gradient-to-r from-orange-700/70 to-amber-600/80 hover:from-orange-600/80 hover:to-amber-500/90'}`}>
+        <Mic size={13} /> {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
+      </button>
+      {error && <p className="text-xs text-red-400/75 font-mono mt-1">{error}</p>}
+    </>
+  )
+}
+
+// ── Word detail panel (shown inside the card when a chip is tapped) ───────────
+function WordDetail({ token, mode, onClose }: { token: SentenceToken; mode: LearnerMode; onClose: () => void }) {
+  const isJapanese = mode === 'th-ja'
+  const accentCls = isJapanese ? 'text-red-400' : 'text-amber-400'
+  const meaning = isJapanese ? token.meaningTh : token.meaningJa
+  const also = isJapanese ? token.meaningJa : token.meaningTh
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 overflow-hidden" style={{ animation: 'fadeUp 0.18s ease both' }}>
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/5">
+        <div>
+          <div className={`font-bold leading-none ${accentCls}`} style={{ fontSize: `clamp(1.6rem, ${(22 / Math.max(token.word.length, 1)).toFixed(2)}rem, 3rem)` }}>{token.word}</div>
+          {token.reading && token.reading !== token.word && <div className="text-gray-400 mt-0.5" style={{ fontSize: 'clamp(0.9rem, 4vw, 1.2rem)' }}>{token.reading}</div>}
+          <div className="text-sm text-gray-300 font-mono tracking-wider mt-1">/{token.romanization}/</div>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%',
-            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'rgba(255,255,255,0.40)', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.80)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.40)' }}
-        >
+        <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 transition-all shrink-0 ml-3">
           <X size={13} />
         </button>
       </div>
-
-      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Meaning */}
-        <div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 5px' }}>
-            {isJapanese ? 'ความหมาย' : '意味'}
-          </p>
-          <p style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.90)', margin: 0 }}>
-            {isJapanese ? token.meaningTh : token.meaningJa}
-          </p>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.30)', margin: '4px 0 0' }}>
-            {isJapanese ? token.meaningJa : token.meaningTh}
-          </p>
-        </div>
-
-        {/* Pitch / tone detail */}
-        {token.syllables?.length > 0 && (
-          <div>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 10px' }}>
-              {isJapanese ? 'ピッチアクセント' : 'วรรณยุกต์'}
-            </p>
-            <div style={{ background: 'rgba(0,0,0,0.20)', borderRadius: 12, padding: '12px 14px' }}>
+      <div className="p-5 space-y-5">
+        {!token.isParticle && token.syllables?.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold">
+              {isJapanese ? 'ピッチアクセント / Pitch Accent' : 'วรรณยุกต์ / Tone Class'}
+            </div>
+            <div className="bg-black/20 rounded-2xl p-4">
               {isJapanese
-                ? <MiniPitch syllables={token.syllables as PitchSyllable[]} />
-                : <MiniTone syllables={token.syllables as ThaiSyllable[]} mode={mode} />
+                ? <PitchDisplay syllables={token.syllables as PitchSyllable[]} />
+                : <ToneDisplay syllables={token.syllables as ThaiSyllable[]} mode={mode} />
               }
             </div>
             {isJapanese && (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.18)', margin: '6px 0 0', display: 'flex', gap: 10 }}>
-                <span><span style={{ color: '#f87171' }}>●</span> high pitch</span>
-                <span>↓ drops after mora</span>
-                <span><span style={{ color: 'rgba(251,191,36,0.75)' }}>●</span> Thai phonetic</span>
+              <p className="text-xs text-gray-600 flex gap-3 flex-wrap">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> high pitch</span>
+                <span>↓ pitch drops after this mora</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400/70 inline-block" /> Thai phonetic</span>
               </p>
             )}
           </div>
         )}
-
-        {/* Practice */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Mic size={9} style={{ opacity: 0.5 }} />
-            {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
-          </p>
-
-          {assessResult ? (
-            <AccuracyFeedback result={assessResult} mode={mode} onReset={() => { setAssessResult(null); setPracticeError(null) }} />
-          ) : practiceLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${accent}0.50)`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Scoring...</span>
-            </div>
-          ) : practiceRecording ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0, color: isJapanese ? 'rgba(248,113,113,0.85)' : 'rgba(251,146,60,0.85)' }}>
-                Listening...
-              </p>
-              <button onClick={stopPractice} style={{
-                display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 11,
-                color: 'rgba(255,255,255,0.40)', cursor: 'pointer', background: 'none',
-                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: '5px 14px', transition: 'all 0.2s',
-              }}>
-                <MicOff size={10} /> Stop &amp; score
-              </button>
-            </div>
-          ) : (
-            <>
-              <button onClick={startPractice} style={{
-                width: '100%', padding: '10px 0', borderRadius: 10, border: 'none',
-                fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                color: 'rgba(255,255,255,0.92)',
-                background: isJapanese
-                  ? 'linear-gradient(135deg, rgba(220,38,38,0.70), rgba(185,28,28,0.80))'
-                  : 'linear-gradient(135deg, rgba(234,88,12,0.70), rgba(251,146,60,0.80))',
-              }}>
-                <Mic size={12} />
-                {isJapanese ? 'พูดเพื่อรับคะแนน' : 'Speak to score'}
-              </button>
-              {practiceError && (
-                <p style={{ margin: '8px 0 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(252,165,165,0.75)' }}>
-                  {practiceError}
-                </p>
-              )}
-            </>
-          )}
+        <div className="space-y-1">
+          <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold">{isJapanese ? 'ความหมาย / Meaning' : '意味 / ความหมาย'}</div>
+          <div className="text-2xl text-white font-medium">{meaning}</div>
+          {also && <div className="text-sm text-gray-500">{also}</div>}
+        </div>
+        <div className="space-y-3 border-t border-white/5 pt-4">
+          <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold flex items-center gap-1.5">
+            <Mic size={10} className="opacity-50" />
+            {isJapanese ? 'ฝึกออกเสียงคำนี้' : 'この単語を練習'}
+          </div>
+          <PracticeSection word={token.word} romanization={token.romanization} mode={mode} />
         </div>
       </div>
     </div>
   )
 }
 
-// ── Main SentenceBreakdown ────────────────────────────────────────────────────
+// ── Main — ONE card, word chips inside, click to see detail ──────────────────
 export function SentenceBreakdown({ sentence, tokens, mode }: Props) {
+  const { speak, isSpeaking } = useTTS()
   const [activeIdx, setActiveIdx] = useState<number | null>(null)
   const isJapanese = mode === 'th-ja'
+  const accentCls = isJapanese ? 'text-red-400' : 'text-amber-400'
+  const badgeColor = isJapanese ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
+  const fullRoman = tokens.map(t => t.romanization).join(' ')
+  const fullMeaning = tokens.filter(t => !t.isParticle).map(t => isJapanese ? t.meaningTh : t.meaningJa).join(' · ')
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.25s ease both' }}>
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-5" style={{ animation: 'fadeUp 0.25s ease both' }}>
 
-      {/* Sentence heading */}
-      <div style={{ borderRadius: 14, padding: '14px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)', margin: '0 0 6px' }}>
+      {/* Badge + TTS */}
+      <div className="flex items-center justify-between">
+        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${badgeColor}`}>
           {isJapanese ? 'ประโยค' : '文'}
-        </p>
-        <p style={{ fontSize: 20, fontWeight: 700, color: 'rgba(255,255,255,0.88)', margin: 0, lineHeight: 1.4 }}>
+        </span>
+        <button
+          onClick={() => speak(sentence, isJapanese ? 'ja-JP' : 'th-TH')}
+          disabled={isSpeaking}
+          className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSpeaking ? 'bg-white/10 text-white/40 cursor-not-allowed' : isJapanese ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-200 hover:scale-110 active:scale-95' : 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 hover:text-amber-200 hover:scale-110 active:scale-95'}`}
+        >
+          {isSpeaking ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+        </button>
+      </div>
+
+      {/* Full sentence big text */}
+      <div className="space-y-1">
+        <div className={`font-bold leading-tight ${accentCls}`} style={{ fontSize: 'clamp(1.6rem, 7vw, 2.8rem)' }}>
           {sentence}
-        </p>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.22)', margin: '6px 0 0' }}>
-          {isJapanese ? 'กดที่คำเพื่อดูรายละเอียด • hover เพื่อดูความหมาย' : '単語をクリックで詳細 • ホバーで意味表示'}
-        </p>
+        </div>
+        <div className="text-base text-gray-300 font-mono tracking-wider pt-1">/{fullRoman}/</div>
       </div>
 
-      {/* Token chips row */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
-        {tokens.map((token, i) => (
-          <TokenChip
-            key={i}
-            token={token}
-            mode={mode}
-            isActive={activeIdx === i}
-            onClick={() => setActiveIdx(activeIdx === i ? null : i)}
-          />
-        ))}
+      {/* Clickable word chips */}
+      <div className="space-y-3">
+        <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold">
+          {isJapanese ? 'แตะคำเพื่อดูรายละเอียด' : '単語をタップ'}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {tokens.map((token, i) => {
+            const isActive = activeIdx === i
+            return (
+              <button
+                key={i}
+                onClick={() => setActiveIdx(isActive ? null : i)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all duration-150
+                  ${isActive
+                    ? isJapanese ? 'bg-red-500/20 border-red-400/40 text-red-300' : 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white/90'
+                  } ${token.isParticle ? 'opacity-50 text-xs font-normal' : ''}`}
+              >
+                {token.word}
+                {token.reading && token.reading !== token.word && (
+                  <span className="block text-xs font-normal opacity-60 leading-tight">{token.reading}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Word detail expands here */}
+        {activeIdx !== null && tokens[activeIdx] && (
+          <WordDetail key={activeIdx} token={tokens[activeIdx]!} mode={mode} onClose={() => setActiveIdx(null)} />
+        )}
       </div>
 
-      {/* Legend */}
-      {isJapanese && (
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.16)', margin: 0, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <span><span style={{ color: '#f87171' }}>●</span> high pitch</span>
-          <span>↓ drops after mora</span>
-          <span><span style={{ color: 'rgba(251,191,36,0.70)' }}>●</span> Thai phonetic</span>
-          <span style={{ opacity: 0.5 }}>dim = particle</span>
-        </p>
-      )}
+      {/* Full meaning */}
+      <div className="space-y-1 border-t border-white/5 pt-5">
+        <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold">
+          {isJapanese ? 'ความหมาย / Meaning' : '意味 / ความหมาย'}
+        </div>
+        <div className="text-xl text-white font-medium leading-snug">{fullMeaning}</div>
+      </div>
 
-      {/* Detail panel for active token */}
-      {activeIdx !== null && tokens[activeIdx] && (
-        <TokenDetail
-          key={activeIdx}
-          token={tokens[activeIdx]!}
-          mode={mode}
-          onClose={() => setActiveIdx(null)}
-        />
-      )}
+      {/* Practice full sentence */}
+      <div className="space-y-3 border-t border-white/5 pt-5">
+        <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold flex items-center gap-1.5">
+          <Mic size={10} className="opacity-50" />
+          {isJapanese ? 'ฝึกออกเสียงประโยค' : '文の発音練習'}
+        </div>
+        <PracticeSection word={sentence} romanization={fullRoman} mode={mode} />
+      </div>
     </div>
   )
 }
+
+
