@@ -13,6 +13,21 @@ interface Props {
   dataset: VocabEntry[]
 }
 
+/** Pick the best MIME type the current browser supports — includes iOS audio/mp4 */
+function getBestMimeType(): string {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/mp4',
+  ]
+  for (const t of candidates) {
+    if (MediaRecorder.isTypeSupported(t)) return t
+  }
+  return ''
+}
+
 /** Find the best matching vocab entry for transcribed text. */
 function findMatch(transcribed: string, dataset: VocabEntry[]): VocabEntry | null {
   const t = transcribed.trim().toLowerCase()
@@ -56,6 +71,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const chunksRef = useRef<Blob[]>([])
   const practiceMediaRef = useRef<MediaRecorder | null>(null)
   const practiceChunksRef = useRef<Blob[]>([])
+  const micStreamRef = useRef<MediaStream | null>(null)   // persistent — avoids re-permission on iOS
   const audioCtxRef = useRef<AudioContext | null>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const silenceRafRef = useRef<number | null>(null)
@@ -95,6 +111,11 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     srRef.current = sr
   }, [])
 
+  // Release mic only on unmount — keeps stream alive between recordings
+  useEffect(() => {
+    return () => { micStreamRef.current?.getTracks().forEach(t => t.stop()) }
+  }, [])
+
   const accentColor = isJapanese ? 'text-red-400' : 'text-amber-400'
   const accentBg = isJapanese ? 'bg-red-500/10' : 'bg-amber-500/10'
   const accentBorder = isJapanese ? 'border-red-500/30' : 'border-amber-500/30'
@@ -109,12 +130,11 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setError(null)
     setInterimText('')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-          ? 'audio/ogg;codecs=opus'
-          : ''
+      if (!micStreamRef.current?.active) {
+        micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const stream = micStreamRef.current
+      const mimeType = getBestMimeType()
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       chunksRef.current = []
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
@@ -127,8 +147,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
         setHasSound(false)
         resetOrbVars()
         try { srRef.current?.stop() } catch { /* ignore */ }
-        stream.getTracks().forEach((t) => t.stop())
-        const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' })
+        const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/mp4' })
         setLoading(true)
         try {
           const res = await transcribeAudio(blob, lang)
@@ -274,19 +293,17 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setPracticeError(null)
     setAssessResult(null)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-          ? 'audio/ogg;codecs=opus'
-          : ''
+      if (!micStreamRef.current?.active) {
+        micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const stream = micStreamRef.current
+      const mimeType = getBestMimeType()
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       practiceChunksRef.current = []
       mr.ondataavailable = (e) => { if (e.data.size > 0) practiceChunksRef.current.push(e.data) }
       mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop())
         if (!matchedEntry) return
-        const blob = new Blob(practiceChunksRef.current, { type: practiceChunksRef.current[0]?.type || 'audio/webm' })
+        const blob = new Blob(practiceChunksRef.current, { type: mimeType || 'audio/mp4' })
         setPracticeLoading(true)
         try {
           const res = await assessPronunciation(blob, matchedEntry.word, matchedEntry.romanization, lang)

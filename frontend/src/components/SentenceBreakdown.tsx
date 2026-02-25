@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Volume2, Mic, MicOff, Loader2, X } from 'lucide-react'
 import type { SentenceToken, PitchSyllable, ThaiSyllable, LearnerMode, AssessResponse } from '../types'
 import { romajiMoraToThai, rtgsToKatakana } from '../utils/phonetics'
@@ -65,6 +65,21 @@ function ToneDisplay({ syllables, mode }: { syllables: ThaiSyllable[]; mode: Lea
   )
 }
 
+// ── Pick the best MIME type on this device (incl. iOS audio/mp4) ─────────────
+function getBestMimeType(): string {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/mp4',
+  ]
+  for (const t of candidates) {
+    if (MediaRecorder.isTypeSupported(t)) return t
+  }
+  return ''
+}
+
 // ── Reusable practice recorder ───────────────────────────────────────────────
 function PracticeSection({ word, romanization, mode }: { word: string; romanization: string; mode: LearnerMode }) {
   const isJapanese = mode === 'th-ja'
@@ -73,20 +88,24 @@ function PracticeSection({ word, romanization, mode }: { word: string; romanizat
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AssessResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const mediaRef = { current: null as MediaRecorder | null }
-  const chunksRef = { current: [] as Blob[] }
+  const mediaRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)   // persistent — avoids repeated mic prompts
 
   const start = async () => {
     setError(null); setResult(null)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : ''
+      if (!streamRef.current?.active) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const stream = streamRef.current
+      const mimeType = getBestMimeType()
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       chunksRef.current = []
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' })
+        // Keep stream alive — do NOT call stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/mp4' })
         setLoading(true)
         try { setResult(await assessPronunciation(blob, word, romanization, lang)) }
         catch (err) { setError(err instanceof Error ? err.message : 'Error') }
