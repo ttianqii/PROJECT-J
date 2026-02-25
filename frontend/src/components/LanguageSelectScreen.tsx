@@ -123,7 +123,7 @@ export function LanguageSelectScreen({ mode, onSelect, onContinue }: Props) {
             : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30 shadow-lg'
           }`}
       >
-        {mode === 'th-ja' ? '🚀 เริ่มเรียน!' : '🚀 始めましょう！'}
+        {mode === 'th-ja' ? 'เริ่มเรียน!' : '始めましょう！'}
       </button>
     </div>
   )
