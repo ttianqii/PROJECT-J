@@ -103,7 +103,7 @@ export async function transcribeAudio(
 export async function tokenizeSentence(
   sentence: string,
   lang: 'ja' | 'th',
-): Promise<{ ok: boolean; tokens: import('../types').SentenceToken[]; error?: string }> {
+): Promise<{ ok: boolean; tokens: import('../types').SentenceToken[]; translationTh: string; translationJa: string; error?: string }> {
   const res = await fetch(`${BASE}/tokenize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

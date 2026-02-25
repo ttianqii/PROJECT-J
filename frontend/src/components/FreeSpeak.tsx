@@ -68,6 +68,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
   const [sentenceTokens, setSentenceTokens] = useState<SentenceToken[] | null>(null)
   const [sentenceTxt, setSentenceTxt] = useState('')
+  const [sentenceTranslationTh, setSentenceTranslationTh] = useState('')
+  const [sentenceTranslationJa, setSentenceTranslationJa] = useState('')
 
   // Direct DOM ref for CSS-var driven orb reactivity (no re-renders)
   const orbRef = useRef<HTMLDivElement>(null)
@@ -137,7 +139,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
             const isSentence = q.includes(' ') || (lang === 'ja' && q.length >= 5) || (lang === 'th' && q.length >= 8)
             if (isSentence) {
               const tok = await tokenizeSentence(q, lang)
-              if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+              if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens); setSentenceTranslationTh(tok.translationTh ?? ''); setSentenceTranslationJa(tok.translationJa ?? '') }
             } else {
               const preset = findMatch(q, dataset)
               if (preset) {
@@ -148,7 +150,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                   setMatchedEntry(looked.entry)
                 } else {
                   const tok = await tokenizeSentence(q, lang)
-                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens); setSentenceTranslationTh(tok.translationTh ?? ''); setSentenceTranslationJa(tok.translationJa ?? '') }
                 }
               }
             }
@@ -323,6 +325,8 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     setSearchError(null)
     setSentenceTokens(null)
     setSentenceTxt('')
+    setSentenceTranslationTh('')
+    setSentenceTranslationJa('')
   }
 
   /** Tap a preset chip to instantly load its WordCard */
@@ -355,7 +359,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
     if (tab !== 'voice' && recording) stopDetect()
     setSpeakMode(tab)
     if (tab !== 'search') setSearchQuery('')
-    if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null); setSentenceTokens(null); setSentenceTxt('') }
+    if (tab !== 'voice') { setMatchedEntry(null); setTranscribeResult(null); setAssessResult(null); setSentenceTokens(null); setSentenceTxt(''); setSentenceTranslationTh(''); setSentenceTranslationJa('') }
   }
 
   /** Submit typed text in search tab — finds best match then goes to pronunciation practice */
@@ -735,7 +739,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
             <RefreshCw size={10} />
             {isJapanese ? 'กลับ / พูดคำอื่น' : '戻る / 別の語を話す'}
           </button>
-          <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} />
+          <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} translationTh={sentenceTranslationTh} translationJa={sentenceTranslationJa} />
         </>
       )}
 
@@ -810,13 +814,15 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               setSearchError(null)
               setSentenceTokens(null)
               setSentenceTxt('')
+              setSentenceTranslationTh('')
+              setSentenceTranslationJa('')
               // 1. Detect sentence FIRST — skip local dataset for multi-word/long phrases
               const isSentence = q.includes(' ') || (lang === 'ja' && q.length >= 5) || (lang === 'th' && q.length >= 8)
               setSearchLoading(true)
               try {
                 if (isSentence) {
                   const tok = await tokenizeSentence(q, lang)
-                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                  if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens); setSentenceTranslationTh(tok.translationTh ?? ''); setSentenceTranslationJa(tok.translationJa ?? '') }
                   else setSearchError(isJapanese ? `ไม่พบข้อมูลสำหรับ 「${q}」` : `「${q}」が見つかりませんでした`)
                 } else {
                   // 2. Try local dataset for short single words
@@ -833,7 +839,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                       setPracticeError(null)
                     } else {
                       const tok = await tokenizeSentence(q, lang)
-                      if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens) }
+                      if (tok.ok && tok.tokens.length > 0) { setSentenceTxt(q); setSentenceTokens(tok.tokens); setSentenceTranslationTh(tok.translationTh ?? ''); setSentenceTranslationJa(tok.translationJa ?? '') }
                       else setSearchError(isJapanese ? `ไม่พบคำว่า 「${q}」` : `「${q}」が見つかりませんでした`)
                     }
                   }
@@ -974,7 +980,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                 <RefreshCw size={10} />
                 {isJapanese ? 'กลับ / ค้นหาอีกครั้ง' : '戻る / 再検索'}
               </button>
-              <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} />
+              <SentenceBreakdown sentence={sentenceTxt} tokens={sentenceTokens} mode={mode} translationTh={sentenceTranslationTh} translationJa={sentenceTranslationJa} />
             </>
           )}
 

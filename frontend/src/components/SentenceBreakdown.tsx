@@ -10,6 +10,8 @@ interface Props {
   sentence: string
   tokens: SentenceToken[]
   mode: LearnerMode
+  translationTh?: string
+  translationJa?: string
 }
 
 // ── Same PitchDisplay as WordCard ─────────────────────────────────────────────
@@ -172,14 +174,16 @@ function WordDetail({ token, mode, onClose }: { token: SentenceToken; mode: Lear
 }
 
 // ── Main — ONE card, word chips inside, click to see detail ──────────────────
-export function SentenceBreakdown({ sentence, tokens, mode }: Props) {
+export function SentenceBreakdown({ sentence, tokens, mode, translationTh, translationJa }: Props) {
   const { speak, isSpeaking } = useTTS()
   const [activeIdx, setActiveIdx] = useState<number | null>(null)
   const isJapanese = mode === 'th-ja'
   const accentCls = isJapanese ? 'text-red-400' : 'text-amber-400'
   const badgeColor = isJapanese ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
   const fullRoman = tokens.map(t => t.romanization).join(' ')
-  const fullMeaning = tokens.filter(t => !t.isParticle).map(t => isJapanese ? t.meaningTh : t.meaningJa).join(' · ')
+  const fullMeaning = isJapanese
+    ? (translationTh || tokens.filter(t => !t.isParticle).map(t => t.meaningTh).join(' · '))
+    : (translationJa || tokens.filter(t => !t.isParticle).map(t => t.meaningJa).join(' · '))
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-5" style={{ animation: 'fadeUp 0.25s ease both' }}>

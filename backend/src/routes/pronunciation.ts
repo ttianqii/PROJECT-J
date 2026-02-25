@@ -395,37 +395,45 @@ For "katakana": write the Katakana that best approximates how a Japanese speaker
 
         const systemPrompt = lang === 'ja'
           ? `You are a Japanese linguistics expert. Tokenize the given sentence into meaningful segments.
-Return ONLY a valid JSON array — no markdown, no explanation — with this shape:
-[
-  {
-    "word": "<token in native script>",
-    "reading": "<hiragana>",
-    "romanization": "<romaji>",
-    "isParticle": <true if grammatical particle/auxiliary, false if content word>,
-    "meaningTh": "<Thai meaning of this token>",
-    "meaningJa": "<brief Japanese gloss>",
-    "syllables": [
-      { "kana": "<mora>", "roman": "<romaji>", "isHigh": <bool>, "isAccentDrop": <bool>, "thai": "<Thai phonetic e.g. ทา โค>" }
-    ]
-  }
-]
+Return ONLY a valid JSON object — no markdown, no explanation — with this shape:
+{
+  "translationTh": "<natural Thai translation of the full sentence>",
+  "translationJa": "<the original Japanese sentence or a natural rephrasing in Japanese>",
+  "tokens": [
+    {
+      "word": "<token in native script>",
+      "reading": "<hiragana>",
+      "romanization": "<romaji>",
+      "isParticle": <true if grammatical particle/auxiliary, false if content word>,
+      "meaningTh": "<Thai meaning of this token>",
+      "meaningJa": "<brief Japanese gloss>",
+      "syllables": [
+        { "kana": "<mora>", "roman": "<romaji>", "isHigh": <bool>, "isAccentDrop": <bool>, "thai": "<Thai phonetic e.g. ทา โค>" }
+      ]
+    }
+  ]
+}
 Use standard Tokyo pitch accent. Include particles (は, が, を, に…) as separate tokens with isParticle:true.
 For "thai": write the Thai phonetic spelling that helps a Thai speaker pronounce that mora.`
           : `You are a Thai linguistics expert. Tokenize the given sentence into meaningful word segments.
-Return ONLY a valid JSON array — no markdown, no explanation — with this shape:
-[
-  {
-    "word": "<token in Thai script>",
-    "reading": "<Thai script>",
-    "romanization": "<RTGS romanization>",
-    "isParticle": <true if particle/filler, false if content word>,
-    "meaningTh": "<Thai definition>",
-    "meaningJa": "<Japanese meaning>",
-    "syllables": [
-      { "thai": "<Thai chars for syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising">, "katakana": "<Katakana approximation>" }
-    ]
-  }
-]`
+Return ONLY a valid JSON object — no markdown, no explanation — with this shape:
+{
+  "translationTh": "<the original Thai sentence or a natural rephrasing in Thai>",
+  "translationJa": "<natural Japanese translation of the full sentence>",
+  "tokens": [
+    {
+      "word": "<token in Thai script>",
+      "reading": "<Thai script>",
+      "romanization": "<RTGS romanization>",
+      "isParticle": <true if particle/filler, false if content word>,
+      "meaningTh": "<Thai definition>",
+      "meaningJa": "<Japanese meaning>",
+      "syllables": [
+        { "thai": "<Thai chars for syllable>", "roman": "<RTGS>", "tone": <"mid"|"low"|"falling"|"high"|"rising">, "katakana": "<Katakana approximation>" }
+      ]
+    }
+  ]
+}`
 
         const chat = await openai.chat.completions.create({
           model: 'gpt-4o',
@@ -436,11 +444,14 @@ Return ONLY a valid JSON array — no markdown, no explanation — with this sha
           ],
         })
 
-        const raw = chat.choices[0]?.message?.content?.trim() ?? '[]'
+        const raw = chat.choices[0]?.message?.content?.trim() ?? '{}'
         const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-        const tokens = JSON.parse(cleaned)
+        const parsed = JSON.parse(cleaned)
+        const tokens = parsed.tokens ?? []
+        const translationTh: string = parsed.translationTh ?? ''
+        const translationJa: string = parsed.translationJa ?? ''
 
-        return { ok: true, tokens }
+        return { ok: true, tokens, translationTh, translationJa }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Unknown error'
         return { ok: false, tokens: [], error: msg }
