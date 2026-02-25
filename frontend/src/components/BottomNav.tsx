@@ -41,7 +41,7 @@ export function BottomNav({ activeTab, mode, appLang, onTabChange, locked = fals
               key={tab}
               onClick={() => !isDisabled && onTabChange(tab)}
               disabled={isDisabled}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all duration-200
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all duration-200
                 ${isDisabled
                   ? 'text-gray-700 cursor-not-allowed'
                   : isActive
@@ -50,11 +50,11 @@ export function BottomNav({ activeTab, mode, appLang, onTabChange, locked = fals
                 }`}
               aria-current={isActive ? 'page' : undefined}
             >
-              <div className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl transition-all duration-200
+              <div className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-200
                 ${isActive && !isDisabled ? activeBg + ' border' : ''}`}>
                 {isDisabled
-                  ? <Lock size={20} strokeWidth={1.6} />
-                  : <Icon size={22} strokeWidth={isActive ? 2.2 : 1.6} />
+                  ? <Lock size={18} strokeWidth={1.6} />
+                  : <Icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
                 }
                 <span className="text-[10px] font-semibold leading-none tracking-wide">
                   {t(i18nKey, appLang)}

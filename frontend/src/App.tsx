@@ -127,7 +127,7 @@ export default function App() {
                 <button
                   key={entry.id}
                   onClick={() => handleWordSelect(entry.id)}
-                  className={`w-full text-left rounded-2xl px-4 py-3 border transition-all active:scale-[0.98]
+                  className={`w-full text-left rounded-2xl px-3 py-2.5 border transition-all active:scale-[0.97]
                     ${isActive
                       ? `${accentBg} ${accentBorder} text-white`
                       : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
@@ -135,7 +135,7 @@ export default function App() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className={`font-bold text-xl leading-tight ${isActive ? accentColor : 'text-white'}`}>
+                      <p className={`font-bold text-lg leading-tight ${isActive ? accentColor : 'text-white'}`}>
                         {entry.word}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">{entry.romanization}</p>
@@ -234,9 +234,9 @@ export default function App() {
     <div className="min-h-screen bg-[#0f0f13] text-white">
       {/* ── Top mini-header ───────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/10">
-        <div className="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
+        <div className="flex items-center justify-between px-4 py-2 max-w-lg mx-auto" style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
           <div className="flex items-center gap-2">
-            <span className={`text-base font-bold ${accentColor}`}>PROJECT-J</span>
+            <span className={`text-sm font-bold tracking-wide ${accentColor}`}>PROJECT-J</span>
           </div>
           {backendOk === false && (
             <span className="text-[10px] bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
@@ -250,7 +250,7 @@ export default function App() {
       </header>
 
       {/* ── Tab content ───────────────────────────────────────────────────── */}
-      <main className="max-w-lg mx-auto overflow-y-auto pb-[calc(88px+env(safe-area-inset-bottom))]">
+      <main className="max-w-lg mx-auto overflow-y-auto pb-[calc(80px+env(safe-area-inset-bottom))]" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         {!languageChosen ? tabLanguage : TAB_CONTENT[activeTab]}
       </main>
 

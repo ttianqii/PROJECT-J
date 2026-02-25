@@ -55,6 +55,15 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   const lang = mode === 'th-ja' ? 'ja' : 'th'
   const isJapanese = lang === 'ja'
 
+  // Responsive orb: shrink on narrow viewports (iPhone SE = 375px)
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 390
+  const orbSize  = Math.min(192, Math.floor(vw * 0.48))   // max 192px, ~48vw
+  const orbCont  = orbSize + 48                           // container is orb + padding ring
+  const arc1Size = orbSize + 26;  const arc1M = -Math.round((orbSize + 26) / 2)
+  const arc1R    = [Math.round(orbSize/2+2), Math.round(orbSize/2+4), Math.round(orbSize/2+12), Math.round(orbSize/2+14)]
+  const arc2Size = orbSize + 40;  const arc2M = -Math.round((orbSize + 40) / 2)
+  const arc2R    = [Math.round(orbSize/2+12), Math.round(orbSize/2+14), Math.round(orbSize/2+19), Math.round(orbSize/2+21)]
+
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)
   const [transcribeResult, setTranscribeResult] = useState<TranscribeResponse | null>(null)
@@ -394,15 +403,15 @@ export default function FreeSpeak({ mode, dataset }: Props) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 0, paddingTop: 24, paddingBottom: 36, paddingLeft: 20, paddingRight: 20,
-      maxWidth: 400, margin: '0 auto', width: '100%',
+      gap: 0, paddingTop: 12, paddingBottom: 16, paddingLeft: 16, paddingRight: 16,
+      maxWidth: 480, margin: '0 auto', width: '100%',
     }}>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', gap: 4, padding: 4, borderRadius: 14,
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: 24, width: 'fit-content', alignSelf: 'center',
+        marginBottom: 12, width: 'fit-content', alignSelf: 'center',
       }}>
         {([
           { id: 'voice' as const, icon: <Mic size={13} />, label: 'Voice' },
@@ -432,13 +441,13 @@ export default function FreeSpeak({ mode, dataset }: Props) {
 
       {/* ── VOICE mode ──────────────────────────────────────────────────── */}
       {speakMode === 'voice' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, width: '100%', animation: 'fadeUp 0.2s ease both' }}>
 
       {/* ── Orb hero ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
 
         {/* Ring container */}
-        <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
+        <div className="relative flex items-center justify-center" style={{ width: orbCont, height: orbCont }}>
           <div style={{ animation: 'orb-float 5s ease-in-out infinite', position: 'relative' }}>
 
             {/* Loading scan-arc halo */}
@@ -446,21 +455,21 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               <>
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%',
-                  width: 218, height: 218, marginTop: -109, marginLeft: -109,
+                  width: arc1Size, height: arc1Size, marginTop: arc1M, marginLeft: arc1M,
                   borderRadius: '50%',
                   background: 'conic-gradient(from 0deg, transparent 48%, rgba(249,115,22,0.12) 65%, rgba(251,146,60,0.55) 84%, rgba(255,200,80,0.95) 97%, rgba(255,220,120,1) 100%)',
-                  WebkitMask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
-                  mask: 'radial-gradient(circle, transparent 98px, black 100px, black 108px, transparent 110px)',
+                  WebkitMask: `radial-gradient(circle, transparent ${arc1R[0]}px, black ${arc1R[1]}px, black ${arc1R[2]}px, transparent ${arc1R[3]}px)`,
+                  mask: `radial-gradient(circle, transparent ${arc1R[0]}px, black ${arc1R[1]}px, black ${arc1R[2]}px, transparent ${arc1R[3]}px)`,
                   boxShadow: '0 0 28px 6px rgba(251,146,60,0.30)',
                   animation: 'scan-arc-spin 1.55s linear infinite', pointerEvents: 'none',
                 }} />
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%',
-                  width: 232, height: 232, marginTop: -116, marginLeft: -116,
+                  width: arc2Size, height: arc2Size, marginTop: arc2M, marginLeft: arc2M,
                   borderRadius: '50%',
                   background: 'conic-gradient(from 180deg, transparent 60%, rgba(249,115,22,0.06) 78%, rgba(251,146,60,0.20) 95%, rgba(251,146,60,0.28) 100%)',
-                  WebkitMask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
-                  mask: 'radial-gradient(circle, transparent 108px, black 110px, black 115px, transparent 117px)',
+                  WebkitMask: `radial-gradient(circle, transparent ${arc2R[0]}px, black ${arc2R[1]}px, black ${arc2R[2]}px, transparent ${arc2R[3]}px)`,
+                  mask: `radial-gradient(circle, transparent ${arc2R[0]}px, black ${arc2R[1]}px, black ${arc2R[2]}px, transparent ${arc2R[3]}px)`,
                   animation: 'scan-arc-spin 3.8s linear infinite reverse', pointerEvents: 'none',
                 }} />
               </>
@@ -470,7 +479,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
             {recording && hasSound && (
               [0, 0.6, 1.2].map((delay) => (
                 <span key={delay} className="absolute rounded-full pointer-events-none" style={{
-                  width: 192, height: 192, top: '50%', left: '50%', translate: '-50% -50%',
+                  width: orbSize, height: orbSize, top: '50%', left: '50%', translate: '-50% -50%',
                   border: '1.5px solid rgba(251,146,60,0.60)',
                   animation: `siri-pulse 2.2s cubic-bezier(0.4,0,0.6,1) ${delay}s infinite`,
                 }} />
@@ -483,20 +492,20 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               disabled={loading || practiceRecording}
               aria-label={recording ? 'Stop recording' : 'Start recording'}
               style={{
-                position: 'relative', width: 192, height: 192,
+                position: 'relative', width: orbSize, height: orbSize,
                 borderRadius: '50%', padding: 0, border: 'none', background: 'none',
                 outline: 'none', cursor: loading ? 'default' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <SiriOrb ref={orbRef} size={192} />
+              <SiriOrb ref={orbRef} size={orbSize} />
               <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {!loading && (
                   <Mic style={{
-                    width: 34, height: 34,
+                    width: Math.round(orbSize * 0.177), height: Math.round(orbSize * 0.177),
                     color: recording ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.28)',
                     filter: recording ? 'drop-shadow(0 0 14px rgba(255,255,255,0.7))' : 'none',
                     transform: recording && hasSound ? 'scale(1.25)' : recording ? 'scale(1.07)' : 'scale(1)',
@@ -768,33 +777,21 @@ export default function FreeSpeak({ mode, dataset }: Props) {
             margin: '0 0 10px' }}>
             {isJapanese ? 'หรือเลือกจากคลัง' : 'または語彙から選ぶ'}
           </p>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+          <div className="chips-scroll">
             {dataset.map((entry) => (
-              <button key={entry.id} onClick={() => pickPreset(entry)} style={{
+              <button key={entry.id} onClick={() => pickPreset(entry)} className="press-scale" style={{
                 flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                padding: '9px 14px', borderRadius: 12, cursor: 'pointer',
+                padding: '8px 12px', borderRadius: 12, cursor: 'pointer',
                 background: 'rgba(255,255,255,0.04)',
                 border: isJapanese
                   ? '1px solid rgba(248,113,113,0.18)'
                   : '1px solid rgba(251,146,60,0.18)',
-                transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
-              }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-                  e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.40)' : 'rgba(251,146,60,0.40)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                  e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.18)' : 'rgba(251,146,60,0.18)'
-                }}
-                onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
-                onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
-              >
-                <span style={{ fontSize: 15, fontWeight: 700,
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 700,
                   color: isJapanese ? '#f87171' : '#fb923c' }}>
                   {entry.word}
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10,
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9,
                   color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>
                   {entry.romanization}
                 </span>
@@ -1020,24 +1017,14 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                       setAssessResult(null)
                       setPracticeError(null)
                     }}
+                    className="press-scale"
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                      padding: '11px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                       background: 'rgba(255,255,255,0.03)',
                       border: isJapanese ? '1px solid rgba(248,113,113,0.12)' : '1px solid rgba(251,146,60,0.12)',
-                      transition: 'background 0.18s, border-color 0.18s, transform 0.12s',
                       animation: `fadeUp 0.18s ease ${idx * 0.04}s both`,
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
-                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.32)' : 'rgba(251,146,60,0.32)'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.12)' : 'rgba(251,146,60,0.12)'
-                    }}
-                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.985)' }}
-                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
                       <span style={{ fontSize: 19, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c', lineHeight: 1.2 }}>
@@ -1070,7 +1057,7 @@ export default function FreeSpeak({ mode, dataset }: Props) {
               }}>
                 {isJapanese ? 'หรือเลือกจากคลัง' : 'または語彙から選ぶ'}
               </p>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              <div className="chips-scroll">
                 {dataset.map((entry) => (
                   <button
                     key={entry.id}
@@ -1079,30 +1066,20 @@ export default function FreeSpeak({ mode, dataset }: Props) {
                       setAssessResult(null)
                       setPracticeError(null)
                     }}
+                    className="press-scale"
                     style={{
                       flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      padding: '9px 14px', borderRadius: 12, cursor: 'pointer',
+                      padding: '8px 12px', borderRadius: 12, cursor: 'pointer',
                       background: 'rgba(255,255,255,0.04)',
                       border: isJapanese
                         ? '1px solid rgba(248,113,113,0.18)'
                         : '1px solid rgba(251,146,60,0.18)',
-                      transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.40)' : 'rgba(251,146,60,0.40)'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                      e.currentTarget.style.borderColor = isJapanese ? 'rgba(248,113,113,0.18)' : 'rgba(251,146,60,0.18)'
-                    }}
-                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
-                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
                   >
-                    <span style={{ fontSize: 15, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: isJapanese ? '#f87171' : '#fb923c' }}>
                       {entry.word}
                     </span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.28)', marginTop: 3 }}>
                       {entry.romanization}
                     </span>
                   </button>

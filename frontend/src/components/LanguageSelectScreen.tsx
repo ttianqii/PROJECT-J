@@ -61,7 +61,7 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
   const selectedOpt = OPTIONS.find(o => o.mode === mode)!
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-4 pb-2">
+    <div className="flex flex-col gap-3 px-4 pt-3 pb-2">
 
       {/* ── App language selector ───────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -87,13 +87,13 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
       </div>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="text-center space-y-1 pt-1">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <img src={FLAG_TH} alt="Thailand" className="w-12 h-auto" />
-          <span className="text-xl text-gray-500">⇄</span>
-          <img src={FLAG_JP} alt="Japan" className="w-12 h-auto" />
+      <div className="text-center space-y-0.5 pt-0.5">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <img src={FLAG_TH} alt="Thailand" className="w-10 h-auto" />
+          <span className="text-lg text-gray-500">⇄</span>
+          <img src={FLAG_JP} alt="Japan" className="w-10 h-auto" />
         </div>
-        <h2 className="text-2xl font-bold text-white">PROJECT-J</h2>
+        <h2 className="text-xl font-bold text-white">PROJECT-J</h2>
         <p className="text-gray-400 text-sm">
           {t('selectLanguage', appLang)}
         </p>
@@ -107,21 +107,21 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
             <button
               key={opt.mode}
               onClick={() => onSelect(opt.mode)}
-              className={`w-full text-left rounded-3xl border-2 p-5 transition-all duration-300
+              className={`w-full text-left rounded-3xl border-2 p-4 transition-all duration-300 active:scale-[0.98]
                 ${isSelected
                   ? `${opt.accentBg} ${opt.accentBorder} shadow-lg scale-[1.01]`
-                  : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20'
+                  : 'bg-white/5 border-white/10'
                 }`}
             >
               <div className="flex items-center gap-4">
                 {/* Target language flag */}
                 <div className="shrink-0">
-                  <img src={opt.targetFlag} alt="target language" className="w-14 h-auto" />
+                  <img src={opt.targetFlag} alt="target language" className="w-12 h-auto" />
                 </div>
 
                 {/* Labels */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xl font-bold leading-tight ${isSelected ? opt.accentText : 'text-white'}`}>
+                  <p className={`text-lg font-bold leading-tight ${isSelected ? opt.accentText : 'text-white'}`}>
                     {t(opt.titleKey, appLang)}
                   </p>
                   <p className="text-sm text-gray-400 mt-0.5 leading-snug">
@@ -146,7 +146,7 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
       {/* ── Start button ────────────────────────────────────────────────── */}
       <button
         onClick={onContinue}
-        className={`w-full py-4 rounded-2xl font-bold text-lg text-white transition-all duration-200 active:scale-95 shadow-lg
+        className={`w-full py-3.5 rounded-2xl font-bold text-base text-white transition-all duration-200 active:scale-95 shadow-lg
           ${selectedOpt.accentBtn}`}
       >
         {t('startLearning', appLang)}

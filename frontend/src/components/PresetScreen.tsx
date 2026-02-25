@@ -70,13 +70,13 @@ export function PresetScreen({ mode, appLang, dataset }: Props) {
   if (selectedEntry) {
     return (
       <div
-        className="flex flex-col gap-4 px-4 pt-4 pb-2"
+        className="flex flex-col gap-3 px-3 pt-3 pb-2"
         style={{ animation: 'slideInRight 0.22s cubic-bezier(0.32,0.72,0,1) both' }}
       >
         {/* Back button */}
         <button
           onClick={goBack}
-          className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors self-start"
+          className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors self-start active:scale-95"
         >
           <ChevronLeft size={18} />
           {t('backToList', appLang)}
@@ -126,13 +126,13 @@ export function PresetScreen({ mode, appLang, dataset }: Props) {
   // ── List view ──────────────────────────────────────────────────────────────
   return (
     <div
-      className="flex flex-col gap-4 px-4 pt-4 pb-2"
+      className="flex flex-col gap-3 px-3 pt-3 pb-2"
       style={{ animation: 'slideInLeft 0.22s cubic-bezier(0.32,0.72,0,1) both' }}
     >
       {/* Header */}
-      <div className="space-y-0.5 pt-1">
-        <h2 className={`text-xl font-bold ${accentColor} flex items-center gap-2`}>
-          <Star size={18} />
+      <div className="space-y-0.5">
+        <h2 className={`text-lg font-bold ${accentColor} flex items-center gap-2`}>
+          <Star size={16} />
           {t('presetTitle', appLang)}
         </h2>
         <p className="text-gray-400 text-sm">
@@ -145,8 +145,8 @@ export function PresetScreen({ mode, appLang, dataset }: Props) {
       </div>
 
       {/* Language badge */}
-      <div className={`rounded-2xl border px-4 py-3 ${accentBg} ${accentBorder} flex items-center gap-3`}>
-        <Languages size={20} className={accentColor} />
+      <div className={`rounded-2xl border px-3 py-2.5 ${accentBg} ${accentBorder} flex items-center gap-3`}>
+        <Languages size={18} className={accentColor} />
         <div>
           <p className={`text-sm font-semibold ${accentColor}`}>
             {isJapanese ? t('learningJp', appLang) : t('learningTh', appLang)}
@@ -158,14 +158,14 @@ export function PresetScreen({ mode, appLang, dataset }: Props) {
       </div>
 
       {/* Category filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="chips-scroll">
         {/* "All" chip */}
         <button
           onClick={() => setActiveCategory('all')}
-          className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+          className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
             activeCategory === 'all'
               ? `${accentActiveBg} border-transparent text-white`
-              : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+              : 'bg-white/5 border-white/10 text-gray-400'
           }`}
         >
           {t('presetAll', appLang)}
@@ -175,10 +175,10 @@ export function PresetScreen({ mode, appLang, dataset }: Props) {
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
               activeCategory === cat.id
                 ? `${accentActiveBg} border-transparent text-white`
-                : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                : 'bg-white/5 border-white/10 text-gray-400'
             }`}
           >
             <cat.Icon size={11} />
