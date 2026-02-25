@@ -51,10 +51,10 @@ const OPTIONS: LangOption[] = [
 ]
 
 // App UI language selector options
-const LANG_OPTS: { lang: AppLang; flag: string; label: string }[] = [
-  { lang: 'th', flag: '🇹🇭', label: 'ไทย' },
-  { lang: 'ja', flag: '🇯🇵', label: '日本語' },
-  { lang: 'en', flag: '🇺🇸', label: 'English' },
+const LANG_OPTS: { lang: AppLang; flagSrc: string; label: string }[] = [
+  { lang: 'th', flagSrc: '/flag/thailand.png',       label: 'ไทย'     },
+  { lang: 'ja', flagSrc: '/flag/japan.png',           label: '日本語'  },
+  { lang: 'en', flagSrc: '/flag/united-kingdom.png',  label: 'English' },
 ]
 
 export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAppLangChange }: Props) {
@@ -69,7 +69,7 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
           {t('appLanguageLabel', appLang)}
         </span>
         <div className="flex gap-1 p-1 rounded-2xl bg-white/5 border border-white/10">
-          {LANG_OPTS.map(({ lang, flag, label }) => (
+          {LANG_OPTS.map(({ lang, flagSrc, label }) => (
             <button
               key={lang}
               onClick={() => onAppLangChange(lang)}
@@ -79,7 +79,7 @@ export function LanguageSelectScreen({ mode, appLang, onSelect, onContinue, onAp
                   : 'text-gray-500 hover:text-gray-300'
                 }`}
             >
-              <span>{flag}</span>
+              <img src={flagSrc} alt={label} className="w-4 h-auto rounded-[2px]" />
               <span>{label}</span>
             </button>
           ))}
