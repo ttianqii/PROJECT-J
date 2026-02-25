@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,       // bind to 0.0.0.0 → accessible on local network
     port: 5173,
     proxy: {
       '/api': {
