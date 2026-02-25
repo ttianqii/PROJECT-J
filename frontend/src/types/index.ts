@@ -1,6 +1,9 @@
 // ─── Language Modes ────────────────────────────────────────────────────────────
 export type LearnerMode = 'th-ja' | 'ja-th'
 
+// ─── App UI Language ──────────────────────────────────────────────────────────
+export type AppLang = 'th' | 'ja' | 'en'
+
 // ─── Japanese-specific accent / pitch ─────────────────────────────────────────
 export type PitchType = 'flat' | 'atamadaka' | 'nakadaka' | 'odaka' | 'heiban'
 

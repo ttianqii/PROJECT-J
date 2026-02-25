@@ -1,11 +1,13 @@
 import { Globe, BookOpen, Mic, Star, Lock } from 'lucide-react'
-import type { LearnerMode } from '../types'
+import type { LearnerMode, AppLang } from '../types'
+import { t } from '../utils/i18n'
 
 export type AppTab = 'language' | 'words' | 'practice' | 'preset'
 
 interface Props {
   activeTab: AppTab
   mode: LearnerMode
+  appLang: AppLang
   onTabChange: (tab: AppTab) => void
   locked?: boolean   // true = only language tab is accessible
 }
@@ -13,18 +15,17 @@ interface Props {
 interface NavItem {
   tab: AppTab
   Icon: React.ElementType
-  labelTh: string
-  labelJa: string
+  i18nKey: string
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { tab: 'language', Icon: Globe,     labelTh: 'ภาษา',   labelJa: '言語'   },
-  { tab: 'words',    Icon: BookOpen,  labelTh: 'คำศัพท์', labelJa: '語彙'   },
-  { tab: 'practice', Icon: Mic,       labelTh: 'ฝึกพูด',  labelJa: '練習'   },
-  { tab: 'preset',   Icon: Star,      labelTh: 'ชุดฝึก',  labelJa: 'セット' },
+  { tab: 'language', Icon: Globe,    i18nKey: 'navLanguage' },
+  { tab: 'words',    Icon: BookOpen, i18nKey: 'navWords'    },
+  { tab: 'practice', Icon: Mic,      i18nKey: 'navPractice' },
+  { tab: 'preset',   Icon: Star,     i18nKey: 'navPreset'   },
 ]
 
-export function BottomNav({ activeTab, mode, onTabChange, locked = false }: Props) {
+export function BottomNav({ activeTab, mode, appLang, onTabChange, locked = false }: Props) {
   const isJapanese = mode === 'th-ja'
   const activeColor = isJapanese ? 'text-red-400' : 'text-amber-400'
   const activeBg    = isJapanese ? 'bg-red-500/15 border-red-500/30' : 'bg-amber-500/15 border-amber-500/30'
@@ -32,7 +33,7 @@ export function BottomNav({ activeTab, mode, onTabChange, locked = false }: Prop
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10">
       <div className="flex items-stretch justify-around max-w-lg mx-auto">
-        {NAV_ITEMS.map(({ tab, Icon, labelTh, labelJa }) => {
+        {NAV_ITEMS.map(({ tab, Icon, i18nKey }) => {
           const isActive = tab === activeTab
           const isDisabled = locked && tab !== 'language'
           return (
@@ -56,7 +57,7 @@ export function BottomNav({ activeTab, mode, onTabChange, locked = false }: Prop
                   : <Icon size={22} strokeWidth={isActive ? 2.2 : 1.6} />
                 }
                 <span className="text-[10px] font-semibold leading-none tracking-wide">
-                  {isJapanese ? labelTh : labelJa}
+                  {t(i18nKey, appLang)}
                 </span>
               </div>
             </button>

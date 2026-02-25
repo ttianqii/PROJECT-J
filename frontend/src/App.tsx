@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import type { LearnerMode, VocabEntry, AssessResponse } from './types'
+import type { LearnerMode, VocabEntry, AssessResponse, AppLang } from './types'
+import { t } from './utils/i18n'
 import { BottomNav, type AppTab } from './components/BottomNav'
 import { LanguageSelectScreen } from './components/LanguageSelectScreen'
 import { PresetScreen } from './components/PresetScreen'
@@ -23,6 +24,9 @@ function groupByCategory(entries: VocabEntry[]): Record<string, VocabEntry[]> {
 
 export default function App() {
   const [mode, setMode] = useState<LearnerMode>('th-ja')
+  const [appLang, setAppLang] = useState<AppLang>(() => {
+    return (localStorage.getItem('appLang') as AppLang | null) ?? 'th'
+  })
   const [activeTab, setActiveTab] = useState<AppTab>('language')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [presetIds, setPresetIds] = useState<string[] | null>(null)
@@ -47,6 +51,11 @@ export default function App() {
       .then((r) => setBackendOk(r.ok))
       .catch(() => setBackendOk(false))
   }, [])
+
+  function handleAppLangChange(lang: AppLang) {
+    setAppLang(lang)
+    localStorage.setItem('appLang', lang)
+  }
 
   function handleModeChange(newMode: LearnerMode) {
     setMode(newMode)
@@ -77,8 +86,10 @@ export default function App() {
   const tabLanguage = (
     <LanguageSelectScreen
       mode={mode}
+      appLang={appLang}
       onSelect={handleModeChange}
       onContinue={() => { setLanguageChosen(true); setActiveTab('words') }}
+      onAppLangChange={handleAppLangChange}
     />
   )
 
@@ -88,19 +99,19 @@ export default function App() {
       <div className="flex items-center justify-between mb-1">
         <div>
           <h2 className={`text-xl font-bold ${accentColor}`}>
-            {isJapanese ? '📖 คำศัพท์' : '📖 語彙リスト'}
+            {t('vocabularyTitle', appLang)}
           </h2>
           {presetIds && (
             <p className="text-xs text-gray-500 mt-0.5">
-              {isJapanese ? `${visibleList.length} คำที่เลือก` : `${visibleList.length}語を選択中`}
+              {appLang === 'ja' ? `${visibleList.length}語を選択中` : appLang === 'th' ? `${visibleList.length} คำที่เลือก` : `${visibleList.length} selected`}
               <button className="ml-2 text-gray-600 underline" onClick={() => setPresetIds(null)}>
-                {isJapanese ? 'แสดงทั้งหมด' : 'すべて表示'}
+                {t('showAll', appLang)}
               </button>
             </p>
           )}
         </div>
         <span className={`text-sm font-mono ${accentColor}`}>
-          {isJapanese ? `${visibleList.length} คำ` : `${visibleList.length}語`}
+          {appLang === 'ja' ? `${visibleList.length}語` : appLang === 'th' ? `${visibleList.length} คำ` : `${visibleList.length} words`}
         </span>
       </div>
 
@@ -148,7 +159,7 @@ export default function App() {
         onClick={() => { setShowWordDetail(false); setAssessResult(null); setAssessError(null) }}
         className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors self-start"
       >
-        ← {isJapanese ? 'กลับ' : '戻る'}
+        {t('back', appLang)}
       </button>
       <WordCard entry={selectedEntry} mode={mode} />
 
@@ -156,11 +167,11 @@ export default function App() {
       <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
         <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">
           <Mic size={12} className="inline mr-1" />
-          {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
+          {t('pronunciationTitle', appLang)}
         </p>
         <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
           <Volume2 size={12} className={accentColor} />
-          <span>{isJapanese ? 'กดฟังก่อน แล้วกดพูด' : 'お手本を聞いてから話してください'}</span>
+          <span>{t('listenThenSpeak', appLang)}</span>
         </div>
         {assessResult ? (
           <AccuracyFeedback
@@ -206,6 +217,7 @@ export default function App() {
   const tabPreset = (
     <PresetScreen
       mode={mode}
+      appLang={appLang}
       dataset={dataset}
       onSelectPreset={handlePresetSelect}
     />
@@ -246,6 +258,7 @@ export default function App() {
       <BottomNav
         activeTab={!languageChosen ? 'language' : activeTab}
         mode={mode}
+        appLang={appLang}
         locked={!languageChosen}
         onTabChange={(tab) => {
           setActiveTab(tab)

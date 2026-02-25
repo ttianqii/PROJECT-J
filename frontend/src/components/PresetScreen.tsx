@@ -3,7 +3,8 @@ import {
   Hand, Hash, Utensils, MessageCircle, Plane, Palette,
   Star, Languages, ChevronLeft, Mic, Volume2, XCircle,
 } from 'lucide-react'
-import type { LearnerMode, VocabEntry, AssessResponse } from '../types'
+import type { LearnerMode, VocabEntry, AssessResponse, AppLang } from '../types'
+import { t } from '../utils/i18n'
 import { WordCard } from './WordCard'
 import { PronunciationRecorder } from './PronunciationRecorder'
 import { AccuracyFeedback } from './AccuracyFeedback'
@@ -13,26 +14,26 @@ type LucideIcon = React.ComponentType<{ size?: number; className?: string }>
 interface CategoryMeta {
   id: string
   Icon: LucideIcon
-  labelTh: string
-  labelJa: string
+  i18nKey: string
 }
 
 const CATEGORY_META: CategoryMeta[] = [
-  { id: 'greetings', Icon: Hand,          labelTh: 'ทักทาย',  labelJa: '挨拶' },
-  { id: 'numbers',   Icon: Hash,          labelTh: 'ตัวเลข',  labelJa: '数字' },
-  { id: 'food',      Icon: Utensils,      labelTh: 'อาหาร',   labelJa: '食べ物' },
-  { id: 'common',    Icon: MessageCircle, labelTh: 'ทั่วไป',  labelJa: '日常' },
-  { id: 'travel',    Icon: Plane,         labelTh: 'เดินทาง', labelJa: '旅行' },
-  { id: 'colors',    Icon: Palette,       labelTh: 'สี',       labelJa: '色' },
+  { id: 'greetings', Icon: Hand,          i18nKey: 'catGreetings' },
+  { id: 'numbers',   Icon: Hash,          i18nKey: 'catNumbers'   },
+  { id: 'food',      Icon: Utensils,      i18nKey: 'catFood'      },
+  { id: 'common',    Icon: MessageCircle, i18nKey: 'catCommon'    },
+  { id: 'travel',    Icon: Plane,         i18nKey: 'catTravel'    },
+  { id: 'colors',    Icon: Palette,       i18nKey: 'catColors'    },
 ]
 
 interface Props {
   mode: LearnerMode
+  appLang: AppLang
   dataset: VocabEntry[]
   onSelectPreset?: (ids: string[]) => void
 }
 
-export function PresetScreen({ mode, dataset }: Props) {
+export function PresetScreen({ mode, appLang, dataset }: Props) {
   const isJapanese   = mode === 'th-ja'
   const accentColor  = isJapanese ? 'text-red-400'              : 'text-amber-400'
   const accentBg     = isJapanese ? 'bg-red-500/10'             : 'bg-amber-500/10'
@@ -78,7 +79,7 @@ export function PresetScreen({ mode, dataset }: Props) {
           className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors self-start"
         >
           <ChevronLeft size={18} />
-          {isJapanese ? 'กลับรายการ' : '一覧に戻る'}
+          {t('backToList', appLang)}
         </button>
 
         {/* Word card */}
@@ -88,11 +89,11 @@ export function PresetScreen({ mode, dataset }: Props) {
         <div className={`rounded-2xl border p-4 ${accentBg} ${accentBorder}`}>
           <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1 flex items-center gap-1">
             <Mic size={12} />
-            {isJapanese ? 'ฝึกออกเสียง' : '発音練習'}
+            {t('pronunciationTitle', appLang)}
           </p>
           <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
             <Volume2 size={12} className={accentColor} />
-            <span>{isJapanese ? 'กดฟังก่อน แล้วกดพูด' : 'お手本を聞いてから話してください'}</span>
+            <span>{t('listenThenSpeak', appLang)}</span>
           </div>
 
           {assessResult ? (
@@ -132,12 +133,14 @@ export function PresetScreen({ mode, dataset }: Props) {
       <div className="space-y-0.5 pt-1">
         <h2 className={`text-xl font-bold ${accentColor} flex items-center gap-2`}>
           <Star size={18} />
-          {isJapanese ? 'ชุดคำศัพท์' : '単語セット'}
+          {t('presetTitle', appLang)}
         </h2>
         <p className="text-gray-400 text-sm">
-          {isJapanese
+          {appLang === 'ja'
+            ? `${filteredWords.length}語 — タップして詳細を見る`
+            : appLang === 'th'
             ? `${filteredWords.length} คำ — แตะเพื่อดูรายละเอียด`
-            : `${filteredWords.length}語 — タップして詳細を見る`}
+            : `${filteredWords.length} words — tap for details`}
         </p>
       </div>
 
@@ -146,10 +149,10 @@ export function PresetScreen({ mode, dataset }: Props) {
         <Languages size={20} className={accentColor} />
         <div>
           <p className={`text-sm font-semibold ${accentColor}`}>
-            {isJapanese ? 'กำลังเรียนภาษาญี่ปุ่น' : 'タイ語を学習中'}
+            {isJapanese ? t('learningJp', appLang) : t('learningTh', appLang)}
           </p>
           <p className="text-xs text-gray-500">
-            {isJapanese ? `${dataset.length} คำทั้งหมด` : `全${dataset.length}語`}
+            {appLang === 'ja' ? `全${dataset.length}語` : appLang === 'th' ? `${dataset.length} คำทั้งหมด` : `${dataset.length} words total`}
           </p>
         </div>
       </div>
@@ -165,7 +168,7 @@ export function PresetScreen({ mode, dataset }: Props) {
               : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
           }`}
         >
-          {isJapanese ? 'ทั้งหมด' : 'すべて'}
+          {t('presetAll', appLang)}
         </button>
 
         {availableCategories.map((cat) => (
@@ -179,7 +182,7 @@ export function PresetScreen({ mode, dataset }: Props) {
             }`}
           >
             <cat.Icon size={11} />
-            {isJapanese ? cat.labelTh : cat.labelJa}
+            {t(cat.i18nKey, appLang)}
           </button>
         ))}
       </div>
@@ -208,7 +211,7 @@ export function PresetScreen({ mode, dataset }: Props) {
             </span>
             {/* Meaning */}
             <span className="text-[11px] text-gray-400 leading-snug line-clamp-2">
-              {isJapanese ? entry.meaningTh : entry.meaningJa}
+            {isJapanese ? entry.meaningTh : entry.meaningJa}
             </span>
           </button>
         ))}
@@ -216,7 +219,7 @@ export function PresetScreen({ mode, dataset }: Props) {
 
       {filteredWords.length === 0 && (
         <p className="text-center text-gray-600 text-sm py-10">
-          {isJapanese ? 'ไม่มีคำในหมวดนี้' : 'この分類には単語がありません'}
+          {t('noWordsInCat', appLang)}
         </p>
       )}
     </div>
