@@ -49,7 +49,7 @@ export function useTTS(): UseTTSReturn {
       else if (loose) utterance.voice = loose
 
       // Tuning for naturalness
-      utterance.rate = 0.85   // slightly slower helps learners
+      utterance.rate = 0.85
       utterance.pitch = 1.0
       utterance.volume = 1.0
 
